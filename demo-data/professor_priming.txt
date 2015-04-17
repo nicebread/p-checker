@@ -1,0 +1,32 @@
+# PROFESSOR PRIMING
+# p-curve analysis from Lakens, Daniel (2014). Professors are not elderly: Evaluating the evidential value of two social priming effects through p-curve analyses. Available at SSRN: http://ssrn.com/abstract=2381936 or http://dx.doi.org/10.2139/ssrn.2381936 
+
+# Test statistics kindly provided by Daniel Lakens at  https://osf.io/3urp2/
+
+BF&M (2008) S1: F(1, 82) = 5.77
+BF&M (2008) S2: F(1, 69) = 7.5
+BF&M (2008) S2: F(1, 69) = 4.53
+
+D&vK (1998) S1: F(1, 57) = 10.45
+D&vK (1998) S2: F(1, 55) = 16.38
+D&vK (1998) S3: F(1, 92) = 10.58
+D&vK (1998) S4: F(1, 39) = 7.12
+
+GW&K (2008) S2a: t(33) = 2.54
+GW&K (2008) S2b: F(1, 31) = 4.82
+
+HM&F (2002) S1: t(22) = 3.55
+HM&F (2002) S1: t(22) = 2.22
+HM&F (2002) S2: t(26) = 3.07
+
+H&W (2009) S1: F(1, 37) = 5.285
+H&W (2009) S2: F(1, 38) = 5.784
+
+L&E (2004) S1: F(1, 84) = 3.63
+L&E (2004) S2: t(71) = 3.07
+L&E (2004) S3: F(1, 53) = 4.42
+L&E (2004) S4: t(120) = 1.77
+
+LEH&S (2007) S2: F(1, 70)=4.83
+
+NSH&S (2010) S3: F(1, 47) = 7.51

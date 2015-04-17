@@ -1,0 +1,30 @@
+responsibly_panel <- '
+<!-- #########  USE RESPONSIBLY  #########   -->
+
+<div class="col-sm-6">
+<div class="panel-group" id="accordion4">
+  <div class="panel panel-primary">
+     <div class="panel-heading" data-toggle="collapse" data-parent="#accordion4" data-target="#collapse4">
+      <h4 class="panel-title accordion-toggle">Use p-checker responsibly!</h4>
+    </div>
+    <div id="collapse4" class="panel-collapse collapse">
+      <div class="panel-body">
+	  
+	  Have fun playing around with p-checker! But when you do an actual p-curve, or R-Index, or whatever analysis, remember:
+	  <ul>
+	  <li>It is <i>not OK</i> to search for single papers which score low on a certain index ("cherry-picking"), and to single out these papers. Sampling variation applies to papers as well, and it can occur by chance that some rare combinations of results are found.</li>
+	  <li>Always analyze papers with a defendable a priori inclusion criterion, e.g.: "All papers from an certain journal issue, which have more than 2 studies", or "The 10 most cited papers of a working group".
+	  <li>Disclose the inclusion rule.</li>
+	  <li>Take care what p-values can be included. p-curve, for example, assumes the independence of p-values. That means, you usually only extract one p-value per sample.</li>
+	  <li>In general: RTFM of the tests you do!</li>
+	  </ul>
+	  <br>
+	  I strongly recommend to read Simonsohn et al.`s (2014) <a href="http://www.p-curve.com">p-curve paper</a>. They have sensible recommendations and rules of thumb which papers and test statistics to include in an analysis.
+		  
+	  
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+'

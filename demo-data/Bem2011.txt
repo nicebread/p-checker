@@ -1,0 +1,12 @@
+# Test statistics from Bem, D. J. (2001). Feeling the Future: Experimental Evidence for Anomalous Retroactive Influences on Cognition and Affect. JPSP, 100, 407-425.
+
+Bem (2011) S1: t(99)=2.51; p=.01; one-tailed
+Bem (2011) S2: t(149)=2.39; p=.009; one-tailed
+Bem (2011) S3: t(96)=2.55; p=.006; one-tailed
+Bem (2011) S4: t(98)=2.03; p=.023; one-tailed
+Bem (2011) S5: t(99)=2.23; p=.014; one-tailed
+Bem (2011) S6a: t(149)=1.80; p=.037; one-tailed
+Bem (2011) S6b: t(149)=1.77; p=.039; one-tailed
+Bem (2011) S7: t(199)=1.31; p=.096; one-tailed
+Bem (2011) S8: t(99)=1.92; p=.029; one-tailed
+Bem (2011) S9: t(49)=2.96, p=.002; one-tailed

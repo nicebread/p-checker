@@ -1,0 +1,215 @@
+---
+title: "p-likelihood: p-curve from a model comparison perspective"
+author: "Felix Schönbrodt"
+date: "Feb 26 2015"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+# library(rmarkdown); render("p-likelihood-report.Rmd") #
+# library(rmarkdown); run("p-likelihood-report.Rmd")
+
+library(shiny)
+library(dplyr)
+library(reshape2)
+# load(file="res_10000.RData") #
+
+load(file="res_5000_4.RData")
+
+LR.boundary <- 5
+res$LR_meta.decision <- "indecisive"
+res$LR_meta.decision[res$LR_meta < 1/LR.boundary] <- "H0"
+res$LR_meta.decision[res$LR_meta > LR.boundary] <- "H1"
+
+res$LR_single.decision <- "indecisive"
+res$LR_single.decision[res$LR_single < 1/LR.boundary] <- "H0"
+res$LR_single.decision[res$LR_single > LR.boundary] <- "H1"
+
+pcurve.boundary <- .05
+res$pcurve.decision <- "indecisive"
+res$pcurve.decision[res$p_lack < pcurve.boundary] <- "H0"
+res$pcurve.decision[res$p_hack < pcurve.boundary] <- "H0"
+res$pcurve.decision[res$p_evidence < pcurve.boundary] <- "H1"
+
+# construct a long data frame of the decisions for tabulation
+decisions.wide <- res %>% select(k, n, reality, LR_meta.decision, LR_single.decision, pcurve.decision)
+decisions.long <- melt(decisions.wide, id.vars=c("k", "n", "reality"))
+
+colnames(decisions.long) <- c("k", "n", "reality", "procedure", "decision")
+levels(decisions.long$reality) <- c(
+	"Reality: d=0 + intensive hacking", 
+	"Reality: d=0.2 + intensive hacking", 
+	"Reality: d = 0", 
+	"Reality: d = 0.5"
+)
+levels(decisions.long$procedure) <- c("LR meta", "LR single", "p-curve")
+```
+
+
+# Method
+## Simulation of three types of studies
+
+- "H0": `r nrow(res)/3` simulated sets of k=5 studies with n=50 each (2 groups with n=25 each). Only keep sets where all 5 studies are significant. (So in all scenarios, the studies are more or less "p-hacked", as the non-significant results go to the file drawer).
+- "H1": As H0, but with a true effect of d = 0.5
+- "hack": As H1, but with a small true effect of d = 0.2. Sample size is optionally increased by 5 participants in each group, until either the maximum n of 100 is reached, or the study is significant. Again, only significant studies are reported.
+
+## Computation of indices ##
+
+- Classical p-curve (a la Simonsohn, Nelson, & Simmons, 2013; see (http://www.p-curve.com))
+- Likelihood approach with a common meta-analyzed effect size across all p values ("LR_meta")
+- Likelihood approach with a separat effect size for all p values ("LR_single"). That means, we assume that each p value gets it's own optimal p-curve, and that the empirical ES estimate is exactly the true ES.
+
+# Results
+
+
+
+#### Classification performance
+
+If we take a LR bound of 5 (resp. 1/5), and a p-curve threshold of p < .05, we get:
+
+
+
+```{r echo=FALSE, eval=FALSE}
+with(decisions.long, prop.table(table(procedure, decision, reality, k, n), margin=c(1, 3:5))*100)
+
+library(ggplot2)
+library(dplyr)
+
+ggplot(decisions.long, aes(x=procedure, fill=decision)) + geom_bar(stat="bin", position=position_stack()) + xlab("Procedure") + facet_wrap(reality~n) + coord_flip() + theme_bw() + scale_fill_manual(values=c("red3", "Chartreuse3", "grey60"))
+```
+
+
+
+Hence, classification performance is roughly in the same magnitude.
+
+Some differences are there, though:
+
+- LR_meta and curve are quite balanced concerning wrong decisions 
+(3-5%), but LR_meta makes more correct decisions and less indecisive 
+outcomes.
+- LR_single is biased towards H1: It detects H1 quite good when it's 
+there, but also assumes an effect if H0 is true with around 2x the error 
+rate of the others.
+- If this method should be used as a p-hacking-detector, researchers 
+probably are most concerned about a wrong classification with a false 
+alarm (i.e., reality = H1, decision = "no evidence"). For that purpose, 
+LR_single seems to be a good candidate, as it has the lowest error rate 
+of that kind, and the highest probability of detecting an effect if it 
+really is there. (At the cost, as always, to misclassify some null 
+effects as "evidence").
+
+By tuning the LR bound one could roughly mimic the p-curve behavior (If 
+this is of any interest ...).
+
+
+
+
+# Discussion #
+
+
+##
+
+Although the LR approach is not dramatically better, I do see several advantages:
+
+- p-likelihood has a natural, interpretable scale ("These results are four times more likely to come from a null effect, or even p-hacked set of studies, than from a real effect.")
+- p-likelihood is a continuous measure of evidence. Even if a result does not cross the arbitrary bound of 5, the LR provides a continuous measure of evidence - in contrast to the binary decision provided by p-curve's chi2-tests.
+- Boundaries can be fine tuned (would be somewhat)
+- If a classification is requested, one has less non-decisions than with p-curve, and a comparable or better classification quality.
+
+A crucial assumption (and feature!) of classical p-curve is that it assumes that the selection pressure for p-values <= .05 and >.05 is different. Therefore it also cannot easily be extended to a range of p values > 5%, as probably most of these p values drop out of the literature.
+
+## Differences of approaches
+
+- p-curve only takes *p* values into account. p-likelihood additionally takes effect size into account.
+- p-curve has a three-way classification ("evidence", "lack of evidence", "hacking"), p-likelihood only a two-way ("more consistent with H0", "more consistent with H1"). However, separating null effects from p-hacked effects would require to define a specific model for the distribution of hacked *p* values. Given the many creative ways of p-hacking, it seems quite difficult to obtain a defensible model.
+- In the presence of a real effect, both methods could come to different conclusions, as they test different models. Consider the following situation: A set of studies claims an enormous effect of d=1.5, but the p-values indicate a much smaller, but existing effect. p-curve only tests for the skew of the p-curve, and if the small effect is in fact present, p-curve will indicate "evidential value". Hence, it tests for the presence of *any* effect. p-likelihood, in contrast, looks whether the p values are consistent with the effect size *that is claimed in the paper*. If the p-values are consistent with a small effect, but inconsistent with the claimed huge effect, p-likelihood could indicate that the H0 is more consistent than H1.
+- 	TODO: A plot of the situation
+- Both approaches can make sense. If one asks, whether there is any evidential value (regardless of the magnitude of the effect), p-urve gives the better answer. If onw aks whether the p-values support the effect that the authors claim, p-likelihood gives the better answer.
+- Problem p-curve: The typical problem "with enough n, everything gets significant": If enough studies are included, any trivial skewness will indicate "evidential value". This can lead to the situation where p-curve indicates both "lack of evidence" (i.e., empirical p-curve is flatter than 33% power curve) *and* evidential value (because there is a significant skew).
+
+## A potential Bayesian extension
+
+A debatable assumption of p-likelihood is that the true effect size for which the p-curve is constructed is fixed and known. If a prior is put on the H1 model the evidence ratio would be a Bayes factor, which takes uncertainty about the true effect size into account.
+
+
+```{r, echo=FALSE}
+inputPanel(
+	sliderInput("LR_bound", label = "LR boundary:", min = 1, max = 10, value = 5, step = 0.1),
+	sliderInput("p_bound", label = "p-curve - critical p value:", min = 0, max = 0.2, value = .05, step = 0.005),
+	selectInput("reality", label = "Generating model:", c("H0"="H0", "H1: d = 0.5"="H1", "Hack: d=0, p-hacked"="hack0", "Hack: d=0.2, p-hacked"="hack0.2"))
+)
+
+renderPlot({
+	# input <- list(reality="hack0", LR_bound=5, p_bound=.05)
+	res0 <- filter(res, reality==input$reality)
+	
+	LR.boundary <- input$LR_bound
+	res0$LR_meta.decision <- "indecisive"
+	res0$LR_meta.decision[res0$LR_meta < 1/LR.boundary] <- "H0"
+	res0$LR_meta.decision[res0$LR_meta > LR.boundary] <- "H1"
+	
+	res0$LR_single.decision <- "indecisive"
+	res0$LR_single.decision[res0$LR_single < 1/LR.boundary] <- "H0"
+	res0$LR_single.decision[res0$LR_single > LR.boundary] <- "H1"
+	
+	pcurve.boundary <- input$p_bound
+	res0$pcurve.decision <- "indecisive"
+	res0$pcurve.decision[res0$p_lack < pcurve.boundary] <- "H0"
+	res0$pcurve.decision[res0$p_hack < pcurve.boundary] <- "H0"
+	res0$pcurve.decision[res0$p_evidence < pcurve.boundary] <- "H1"
+	
+	# construct a long data frame of the decisions for tabulation
+	decisions.wide <- res0 %>% select(k, n, reality, LR_meta.decision, LR_single.decision, pcurve.decision)
+	decisions.long <- melt(decisions.wide, id.vars=c("k", "n", "reality"))
+	
+	colnames(decisions.long) <- c("k", "n", "reality", "procedure", "decision")
+	levels(decisions.long$reality) <- c("Reality: d=0 + intensive hacking", "Reality: d=0.2 + intensive hacking", "Reality: d = 0", "Reality: d = 0.5")
+	levels(decisions.long$procedure) <- c("LR meta", "LR single", "p-curve")
+	
+	# summarise to get percentages
+	d3 <- decisions.long %>% group_by(procedure, n, k, decision) %>% summarise(N=n()) %>% mutate(perc=N/sum(N))
+	
+	ggplot(d3, aes(x=procedure, y=perc, fill=decision)) + geom_bar(stat="identity", position=position_stack()) + xlab("Procedure") + facet_wrap(n~k) + coord_flip() + theme_bw() + scale_fill_manual(values=c("red3", "Chartreuse3", "grey60"))
+})
+```
+
+
+```{r echo=FALSE, eval=FALSE}
+# ROCR #
+
+library(ROCR)
+
+d <- decisions.wide
+d$reality <- as.character(d$reality)
+d$reality[d$reality=="hack"] <- "H0"
+
+d2 <- filter(d, LR_meta.decision != "indecisive", n==40, k==5)
+pr <- prediction(d2$LR_meta.decision, d2$reality)
+
+pr <- prediction(factor(c("H0", "H0", "H0", "H1")), factor(c("H0", "H0", "H1", "H1")))
+
+
+d <- res
+d$reality <- as.character(d$reality)
+d$reality[d$reality=="hack"] <- "H0"
+
+d$pred <- log(d$LR_meta)
+
+d2 <- filter(d, n==40, k==5)
+
+# classical ROC
+pr <- prediction(d2$pred, d2$reality)
+perf <- performance(pr, measure="tpr", x.measure="fpr")
+plot(perf)
+
+# Accuracy is optimal with cutoff at LR=1 (well, that's obvious ...)
+perf2 <- performance(pr, measure="acc")
+plot(perf2)
+
+perf3 <- performance(pr, measure="sens", x.measure="spec")
+plot(perf3)
+
+
+```
+
