@@ -89,6 +89,9 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 		
 		column(width=8, 
 
+			# show warning if experimental features are activated
+			htmlOutput("experimental_warning"),
+
 			# show potential parser errors on top of output
 			htmlOutput("parser_errors"),
 			
@@ -126,9 +129,9 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 					</small>'),
 					tableOutput("pcurve_table")
 				),
-				tabPanel("Meta-analysis (beta)",
-					htmlOutput("meta")
-				),
+				# tabPanel("Meta-analysis (beta)",
+# 					htmlOutput("meta")
+# 				),
 				tabPanel("p values correctly reported?",
 					htmlOutput("report_table")
 				),
