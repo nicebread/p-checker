@@ -9,7 +9,7 @@ about_panel <- '
     </div>
     <div id="collapse3" class="panel-collapse collapse">
       <div class="panel-body">
-	  <i>(c) 2015 by <a href="mailto:felix@nicerbead.de">Felix Schönbrodt</a> (<a href="http://www.nicebread.de">www.nicebread.de</a>). The source code of this app is licensed under the <a href="https://creativecommons.org/licenses/by/4.0/">CC-BY 4.0</a> license and will soon be published on Github.</i>
+	  <i>(c) 2015 by <a href="mailto:felix@nicerbead.de">Felix Schönbrodt</a> (<a href="http://www.nicebread.de">www.nicebread.de</a>). The source code of this app is licensed under the open GPL-2 license and is published on <a href="https://github.com/nicebread/p-checker">Github</a>.</i>
 	  
 	  <br><br>
 	  
