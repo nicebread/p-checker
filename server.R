@@ -244,6 +244,11 @@ CD&E (2014) S1b: t(123)=2.01; one-tailed; p = .02
 		if (nrow(dat$tblDisplay) > 0) {
 			rindex_table <- dat$tblDisplay[dat$tblDisplay$focal==TRUE, c("paper_id", "study_id", "type", "df1", "df2", "statistic", "p.value", "p.crit", "Z", "obs.pow", "significant", "median.obs.pow")]
 			
+			# Omit near-significants if requested
+			if (input$omit_nearly_significant == TRUE) {
+				rindex_table <- rindex_table %>% filter(p.value < .05 | p.value > .10)
+			}		
+			
 			if (input$only_first_ES == TRUE) {
 				rindex_table <- rindex_table %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1)
 			}
@@ -262,11 +267,17 @@ CD&E (2014) S1b: t(123)=2.01; one-tailed; p = .02
 			
 		# only select focal hypothesis tests
 		tbl <- dat$tbl[dat$tbl$focal==TRUE, ]
+
+		# Omit near-significants if requested
+		if (input$omit_nearly_significant == TRUE) {
+			tbl <- tbl %>% filter(p.value < .05 | p.value > .10)
+		}		
 		
 		# only select first ES of each study, if requested
 		if (input$only_first_ES == TRUE) {
 			tbl <- tbl %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1)
 		}
+		
 		
 		
 		# One r-index analysis across all ES

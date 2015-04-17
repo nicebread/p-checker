@@ -61,6 +61,11 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 					sliderInput("pcurve_power", "Power (EXPERIMENTAL! Default = 33%)", min=15, max=90, value=33, step=1)
 				),
 				
+				conditionalPanel(
+					condition = "input.tabs1 == 'R-Index' & input.experimental == 1",
+					checkboxInput("omit_nearly_significant", "Omit 'nearly significant' p-values (.05 < p < .10) from R-Index analysis. (EXPERIMENTAL! Default = UNCHECK)", FALSE)
+				),
+				
 				numericInput("digits", "Digits in display:", 3, min = 0, max = 5),
 				checkboxInput("round_up", "Gracious rounding up", FALSE),
 				helpText("If the t value is reported as 2.1, it could also be 2.14999 which has been rounded down. If you want to be maximally generous, you can check this box, and all test statistics are automatically increased by X.XX4999."),
