@@ -313,10 +313,11 @@ parse_ES <- function(x, round_up=FALSE) {
 		if (is.character(parsed)) Ws <- c(Ws, parsed)
 	}
 	
+	if (nrow(res) == 0) return(NULL)
 	res2 <- cbind(ID <- 1:nrow(res), res)
 	
 	attr(res2, "warnings") <- Ws
-	res2
+	return(res2)
 }
 
 
@@ -331,3 +332,6 @@ parse_ES <- function(x, round_up=FALSE) {
 # chi2(1, 345)=8.74
 # ")
 # parse_ES(x)
+
+#x <- "t("
+#parse_ES(x)

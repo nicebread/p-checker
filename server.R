@@ -84,8 +84,10 @@ CD&E (2014) S1b: t(123)=2.01; one-tailed; p = .02
 	# every time the text field is changed, this function is called and parses the input string
 	observe({
 		
-		# quit when syntax field is not created yet
-		if (is.null(input$txt)) return()
+		# quit when syntax field is not created yet or empty
+		if (is.null(input$txt)) {
+			return()
+		}
 			
 		tbl <- parse_ES(input$txt, round_up=input$round_up)
 		
@@ -97,7 +99,7 @@ CD&E (2014) S1b: t(123)=2.01; one-tailed; p = .02
 		}
 		
 		# No input? Return empty data frame
-		if (nrow(tbl) == 0) {
+		if (is.null(tbl) || nrow(tbl) == 0) {
 			dat$tblDisplay <- data.frame()
 			dat$tbl <- data.frame()
 			return()
