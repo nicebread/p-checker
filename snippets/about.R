@@ -18,17 +18,6 @@ about_panel <- '
 	  p-curve code is to a large extent adapted or copied from Uri Simonsohn (see <a href="http://p-curve.com/Supplement/Rcode_other/R%20Code%20behind%20p-curve%20app%203.0%20-%20distributable.R">here</a>). TIVA code adapted from Moritz Heene.
 	  <br/><br>
 	  
-	  <h3>Disclaimer / Validity of the results</h3>
-	  This app is still beta. That means, the UI and the format of exported data might still change.
-	  <br>
-	  I cross-validated the results with p-curve.com and did not find differences (unsurprisingly, as I use Uri`s code for p-curve to a large extent). With a single click (see the "Export" tab) you can transfer the test statistics to <a href="http://www.p-curve.com">p-curve.com</a> and cross-validate the results yourself. 
-	  I also checked the results with the <a href="http://www.r-index.org/">R-Index Excel-sheet</a> and did not find differences so far.
-	  <br>Nonetheless, this app could contain errors and a healthy scepticism towards the results is indicated. I always recommend to perform some plausibility checks. If you suspect a bug or encounter errors, please send me an <a href="mailto:felix@nicebread.de">email</a> with your test statistics and a description of the error.
-	  
-	  <h3>Comments</h3>
-	  Any detected bugs, comments, and feature requests are welcome: <a href="mailto:felix@nicebread.de">felix@nicebread.de</a>
-	  <br>
-	  
 	  <h3>Citation</h3>
 	  Programming this app took a considerable effort and amount of time. If you use it in your research, please consider citing the app, and of course the creators of the statistical tests:
 	  <br/><br/>
@@ -38,8 +27,20 @@ about_panel <- '
 	  Schimmack, U. (2014). <i>Quantifying Statistical Research Integrity: The Replicability-Index</i>. Retrieved from http://www.r-index.org
 	  <br/><br/>
 	  Schönbrodt, F. D. (2015). <i>p-checker: One-for-all p-value analyzer.</i> Retrieved from http://shinyapps.org/apps/p-checker/.
-	  <br/><br/>
-
+	  <br/><br/>	  
+	  
+	  
+	  <h3>Disclaimer / Validity of the results</h3>
+	  This app is still beta. That means, the UI and the format of exported data might still change.
+	  <br>
+	  I cross-validated the results with p-curve.com and did not find differences (unsurprisingly, as I use Uri`s code for p-curve to a large extent). With a single click (see the "Export" tab) you can transfer the test statistics to <a href="http://www.p-curve.com">p-curve.com</a> and cross-validate the results yourself. 
+	  I also checked the results with the <a href="http://www.r-index.org/">R-Index Excel-sheet</a> and did not find differences so far.
+	  <br>Nonetheless, this app could contain errors and a healthy scepticism towards the results is indicated. I always recommend to perform some plausibility checks. Feel free to go to the <a href="https://github.com/nicebread/p-checker">source code</a> and check the validity yourself. If you suspect a bug or encounter errors, please send me an <a href="mailto:felix@nicebread.de">email</a> with your test statistics and a description of the error.
+	  
+	  <h3>Comments</h3>
+	  Any detected bugs, comments, and feature requests are welcome: <a href="mailto:felix@nicebread.de">felix@nicebread.de</a>
+	  <br>
+	  
 	  <h3>Demo data sets</h3>
 	  
 	  <ul>

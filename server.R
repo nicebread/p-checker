@@ -245,7 +245,7 @@ CD&E (2014) S1b: t(123)=2.01; one-tailed; p = .02
 			rindex_table <- dat$tblDisplay[dat$tblDisplay$focal==TRUE, c("paper_id", "study_id", "type", "df1", "df2", "statistic", "p.value", "p.crit", "Z", "obs.pow", "significant", "median.obs.pow")]
 			
 			# Omit near-significants if requested
-			if (input$omit_nearly_significant == TRUE) {
+			if (input$experimental == TRUE & input$omit_nearly_significant == TRUE) {
 				rindex_table <- rindex_table %>% filter(p.value < .05 | p.value > .10)
 			}		
 			
@@ -269,7 +269,7 @@ CD&E (2014) S1b: t(123)=2.01; one-tailed; p = .02
 		tbl <- dat$tbl[dat$tbl$focal==TRUE, ]
 
 		# Omit near-significants if requested
-		if (input$omit_nearly_significant == TRUE) {
+		if (input$experimental == TRUE & input$omit_nearly_significant == TRUE) {
 			tbl <- tbl %>% filter(p.value < .05 | p.value > .10)
 		}		
 		
