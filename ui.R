@@ -37,7 +37,10 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 				tags$hr(),
 				tags$h3("Test-specific options"),
 				
-				checkboxInput("group_by_paper", "Group results by paper", FALSE),
+				conditionalPanel(
+					condition = "input.tabs1 != 'Meta-analysis'",
+					checkboxInput("group_by_paper", "Group results by paper", FALSE)
+				),
 				
 				conditionalPanel(
 					condition = "input.tabs1 == 'p-Curve' | input.tabs1 == 'R-Index' | input.tabs1 == 'TIVA'",
@@ -145,9 +148,9 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 					</small>'),
 					tableOutput("pcurve_table")
 				),
-				# tabPanel("Meta-analysis (beta)",
-# 					htmlOutput("meta")
-# 				),
+				tabPanel("Meta-analysis",
+					htmlOutput("meta")
+				),
 				tabPanel("p values correctly reported?",
 					htmlOutput("report_table")
 				),

@@ -531,6 +531,50 @@ shinyServer(function(input, output, session) {
 	
 	
 	
+	# ---------------------------------------------------------------------
+	# Meta-Analysis
+
+
+	output$meta <- renderUI({
+
+		# select only focal tests
+		tbl <- dat$tbl[dat$tbl$focal==TRUE, ]
+
+		# select all tests of one kind:
+		test_type <- "error"
+		switch(input$meta_ES_type,
+			"ttest_2" = {
+				test_type <- "Two-group t-test"
+				tbl <- tbl[tbl$type=="t" | (tbl$type=="f" & tbl$df1==1), ]
+				tbl <- mutate(tbl, vi = 1/(n.approx/2) + 1/(n.approx/2) + g^2/(2*(n.approx)))
+			}
+		)
+
+		if (nrow(tbl) == 0) {return(NULL)}
+		if (var(tbl$n.approx, na.rm=TRUE) == 0) {return(list(renderText({"No variance in sample sizes."})))}
+
+		meta_table <- tbl[, c("paper_id", "study_id", "type", "df1", "df2", "statistic", "n.approx", "p.value", "d", "g", "vi")]
+
+		library(metafor)
+		meta_analysis <- rma(tbl$g, tbl$vi, method="FE")
+		#
+		# R <- cor.test(tbl$n.approx, tbl$g, use="p")
+		# r_eqn <- as.character(as.expression(substitute(italic(r) == R*", "~~p, list(R=round(R$estimate, 3), p=p(R$p.value)))))
+
+		return(list(
+			HTML(paste0('<div class="alert alert-warning" role="alert">This meta-analysis assumes that all test statistics are of the type: "', test_type, '"! Furthermore, it assume that participants are equally distributed across groups. This initial summary <i>does not replace a proper meta-analysis!</i></div>')),
+			renderPrint({print(meta_analysis)}),
+			renderPlot({funnel(meta_analysis)}),
+			# renderPlot({
+			# 	ggplot(tbl, aes(x=n.approx, y=g)) + geom_point() + geom_smooth(method=lm) + xlab("Sample size") + ylab("Effect size (Hedge's g)") + annotate("text", x = Inf, y = Inf, label = r_eqn, colour="black", size = 4, parse=TRUE, hjust=1.5, vjust=1.5)
+			# }, res=120),
+			HTML("<br><br><h2>Detailed results for each test statistic:</h2>"),
+			div(renderTable({meta_table}), style = "font-size:80%")
+		))
+	})
+
+	
+	
 	
 	
 	
