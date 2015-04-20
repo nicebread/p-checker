@@ -290,6 +290,8 @@ parse_ES1 <- function(x, paper_id_fallback="_1", round_up=FALSE) {
 	return(res)
 }
 
+
+
 # A vectorized version of the parse_ES1 function
 parse_ES <- function(x, round_up=FALSE) {
 	
@@ -319,19 +321,3 @@ parse_ES <- function(x, round_up=FALSE) {
 	attr(res2, "warnings") <- Ws
 	return(res2)
 }
-
-
-# x <- c("
-# t(88)=-2.1
-# r(147)=.246
-# F(1,100)=9.1
-# f(2,210)=4.45
-# Z=3.45
-# chi2(1)=9.1
-# r(77)=.47
-# chi2(1, 345)=8.74
-# ")
-# parse_ES(x)
-
-#x <- "t("
-#parse_ES(x)

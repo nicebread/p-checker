@@ -12,12 +12,14 @@ source("snippets/about.R")
 
 shinyUI(fluidPage(theme = shinytheme("cosmo"),
 
+# Accordion/ folding animation for quickstart etc.
 	tags$head(tags$link(rel="stylesheet", type="text/css", href="accordion.css")),
 	
 	title = "One-for-all p-hacking detector",
 	
 	titlePanel("p-checker: The one-for-all p-value analyzer."),
 	
+	# display the accordion panels
 	HTML(paste0('<div class="row">', qs_panel, responsibly_panel, '</div>')),	
 	HTML(paste0('<div class="row">', extended_manual_panel, about_panel, '</div>')),
 	
@@ -26,9 +28,14 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 	
 	fluidRow(
 		column(width=4,
+			
+				# the syntax input text field is constructed by ther server.R
 				uiOutput("syntax"),
 				
 				downloadButton('downloadData','Save input as CSV file'),
+				
+				tags$hr(),
+				tags$h3("Test-specific options"),
 				
 				checkboxInput("group_by_paper", "Group results by paper", FALSE),
 				
@@ -62,9 +69,13 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 				),
 				
 				conditionalPanel(
-					condition = "input.tabs1 == 'R-Index' & input.experimental == 1",
-					checkboxInput("omit_nearly_significant", "Omit 'nearly significant' p-values (.05 < p < .10) from R-Index analysis. (EXPERIMENTAL! Default = UNCHECK)", FALSE)
+					condition = "input.tabs1 == 'R-Index'",
+					checkboxInput("omit_nearly_significant", "Omit 'nearly significant' p-values (range: see below) from R-Index analysis.", FALSE),
+					sliderInput("omit_nearly_significant_range", "Range of 'nearly significant'", min=.0, max=.20, value=c(.05, .10), step=.005)
 				),
+				
+				tags$hr(),
+				tags$h3("General options"),
 				
 				numericInput("digits", "Digits in display:", 3, min = 0, max = 5),
 				checkboxInput("round_up", "Gracious rounding up", FALSE),
@@ -143,13 +154,6 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 				tabPanel("Export", 					
 					tableOutput("export")
 				)
-				
-				# ,
-# 				tabPanel("p-Uniform (coming later!)",
-# 					HTML("p-uniform will be implemented later ...
-# 					<br><br>
-# 					van Assen, M. A. L. M., van Aert, R. C. M., & Wicherts, J. M. (2014). Meta-Analysis Using Effect Size Distributions of Only Statistically Significant Studies. Psychological Methods. doi:10.1037/met0000025")
-# 				)
 			)
 		)
 	)	

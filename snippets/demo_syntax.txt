@@ -1,0 +1,18 @@
+# GO AND REPLACE THE EXAMPLES!			  
+# Easy mode ('#' starts a comment)
+t(47) = 2.1
+chi2(1) = 9.1
+r(77) = .47
+F(1, 88) = 9.21
+
+# add reported p-value; one-tailed; alpha level
+t(123) = 2.54; p < .01
+Z = 1.9; one-tailed; p=.03
+r(25) = 0.21; crit=.10
+
+# add paper ID
+A&B (2001) Study1: t(88)=2.1; one-tailed; p < .02
+A&B (2001) Study1: r(147)=.246
+A&B (2001) Study2: F(1,100)=9.1
+CD&E (2014) S1a: F(1,210)=4.45; p < .01
+CD&E (2014) S1b: t(123)=2.01; one-tailed; p = .02
