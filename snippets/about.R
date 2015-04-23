@@ -9,7 +9,7 @@ about_panel <- '
     </div>
     <div id="collapse3" class="panel-collapse collapse">
       <div class="panel-body">
-	  <i>(c) 2015 by <a href="mailto:felix@nicerbead.de">Felix Schönbrodt</a> (<a href="http://www.nicebread.de">www.nicebread.de</a>). The source code of this app is licensed under the open GPL-2 license and is published on <a href="https://github.com/nicebread/p-checker">Github</a>.</i>
+	  <i>(c) 2015 by <a href="mailto:felix@nicebead.de">Felix Schönbrodt</a> (<a href="http://www.nicebread.de">www.nicebread.de</a>). The source code of this app is licensed under the open GPL-2 license and is published on <a href="https://github.com/nicebread/p-checker">Github</a>.</i>
 	  
 	  <br><br>
 	  
@@ -59,11 +59,12 @@ about_panel <- '
 
 	  <h3>Version 0.4</h3>
 
-	  Known issues:<br/><br/>
+	  Known issues / Todos:<br/><br/>
 	  <ul>
 	  <li>p-curve plot: 33% power curve missing</li>
-	  <li>TODO: Clearly separate the inference functions from UI functions</li>
-	  <li>TODO: Make TIVA computation robust against outliers.</li>
+	  <li>Clearly separate the inference functions from UI functions</li>
+	  <li>Make TIVA computation robust against outliers.</li>
+	  <li>When sharing analysis via a link, only the test statistics are exported, not the analysis settings!</li>
 	  </ul>	  
 	  
       </div>
