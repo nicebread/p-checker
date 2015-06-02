@@ -148,6 +148,9 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 				# tabPanel("Meta-analysis (beta)",
 # 					htmlOutput("meta")
 # 				),
+				tabPanel("Effect-sizes (beta)",
+					htmlOutput("effectsizes")
+				),
 				tabPanel("p values correctly reported?",
 					htmlOutput("report_table")
 				),

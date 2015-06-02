@@ -32,7 +32,7 @@ parse_ES1 <- function(x, paper_id_fallback="_1", round_up=FALSE) {
 	x <- str_trim(x)
 	
 	# replace all commas outside of parentheses with semicolons
-	if (str_detect(x, ")")) {
+	if (str_detect(x, "\\)")==TRUE) {
 		x1 <- str_match(x, "(.*)\\)(.*)")[2]
 		x2 <- str_match(x, "(.*)\\)(.*)")[3]
 		x2 <- gsub(",", ";", x2)
