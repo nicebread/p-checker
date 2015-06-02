@@ -536,7 +536,7 @@ shinyServer(function(input, output, session) {
 	output$effectsizes <- renderUI({
 		if (nrow(dat$tbl) > 0) {
 			
-			ES_plot <- ggplot(dat$tbl, aes(x=n.approx, y=g)) + geom_point() + xlab("Approximate n") + ylab("Hedge's g") + geom_smooth(method=lm)
+			ES_plot <- ggplot(dat$tbl, aes(x=n.approx, y=abs(g))) + geom_point() + xlab("Approximate n") + ylab("Absolute Hedge's g") + geom_smooth(method=lm)
 			
 			ES_table <- dat$tblDisplay[, c("paper_id", "study_id", "type", "df1", "df2", "statistic", "p.value", "n.approx", "d", "g")]		
 			
