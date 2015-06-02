@@ -53,7 +53,7 @@ shinyServer(function(input, output, session) {
 		if (is.null(input$txt)) {
 			return()
 		}
-			
+		
 		tbl <- parse_ES(input$txt, round_up=input$round_up)
 		
 		# parser errors present?
@@ -529,6 +529,29 @@ shinyServer(function(input, output, session) {
 		}
 	})
 	
+	
+	# ---------------------------------------------------------------------
+	# Effect size panel	
+	
+	output$effectsizes <- renderUI({
+		if (nrow(dat$tbl) > 0) {
+			
+			ES_plot <- ggplot(dat$tbl, aes(x=n.approx, y=g)) + geom_point() + xlab("Approximate n") + ylab("Hedge's g") + geom_smooth(method=lm)
+			
+			ES_table <- dat$tblDisplay[, c("paper_id", "study_id", "type", "df1", "df2", "statistic", "p.value", "n.approx", "d", "g")]		
+			
+			return(list(
+				HTML('<p class="text-warning">The test statistics are converted to Cohen`s d (resp. Hedge`s g) wherever possible. Warning: The effect size conversions are based on approximative formulas. Although they work good under most conditions, they should not be used for a proper meta-analysis!</p>'),
+				h2("Effect size vs. sample size"),
+				renderPlot({ES_plot}, res=150),
+				HTML(paste0("<h4>r = ", round(cor(dat$tbl$n.approx, dat$tbl$g, use="p"), 2), "</h4>")),
+				HTML("<br><br><h2>Detailed results for each test statistic:</h2>"),
+				div(renderTable({ES_table}), style = "font-size:80%")
+			))	
+		} else {
+			return(NULL)
+		}
+	})
 	
 	
 	
