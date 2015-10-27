@@ -2,6 +2,7 @@ library(shiny)
 library(shinythemes)
 library(shinyTable)
 library(shinyBS) # Additional Bootstrap Controls
+library(ggvis)
 
 # Load the panels with the manual etc.
 source("snippets/quick_start.R")
@@ -10,7 +11,7 @@ source("snippets/extended_manual.R")
 source("snippets/about.R")
 
 
-shinyUI(fluidPage(theme = shinytheme("cosmo"),
+shinyUI(fluidPage(theme = shinytheme("spacelab"),
 
 # Accordion/ folding animation for quickstart etc.
 	tags$head(tags$link(rel="stylesheet", type="text/css", href="accordion.css")),
@@ -32,7 +33,7 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 				# the syntax input text field is constructed by ther server.R
 				uiOutput("syntax"),
 				
-				downloadButton('downloadData','Save input as CSV file'),
+				downloadButton('downloadData','Save input as CSV file', class="btn-sm"),
 				
 				tags$hr(),
 				tags$h3("Test-specific options"),
@@ -116,7 +117,7 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 					htmlOutput("rindex_summary"),
 					conditionalPanel(
 						condition = "input.group_by_paper == 1",
-						downloadButton('downloadRIndex','Save R-Index results as CSV file')
+						downloadButton('downloadRIndex','Save R-Index results as CSV file', class="btn-sm")
 					),
 					HTML('<small>For information about R-Index, see <a href="http://www.r-index.org/">http://www.r-index.org/</a>.</small>'),
 					htmlOutput("rindex_table")
@@ -125,7 +126,7 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 					htmlOutput("tiva_summary"),
 					conditionalPanel(
 						condition = "input.group_by_paper == 1",
-						downloadButton('downloadTIVA','Save TIVA results as CSV file')
+						downloadButton('downloadTIVA','Save TIVA results as CSV file', class="btn-sm")
 					),
 					HTML('<small>For information about TIVA, see <a href="https://replicationindex.wordpress.com/2014/12/30/the-test-of-insufficient-variance-tiva-a-new-tool-for-the-detection-of-questionable-research-practices/comment-page-1/#comment-92">replicationindex.wordpress.com</a>.</small>'),
 					htmlOutput("tiva_table")
@@ -133,12 +134,12 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 				tabPanel("p-Curve", 
 					conditionalPanel(
 						condition = "input.group_by_paper == 0",
-						plotOutput("pcurve_plot")
+						htmlOutput("pcurve_plot")
 					),					
 					htmlOutput("pcurve_summary"),
 					conditionalPanel(
 						condition = "input.group_by_paper == 1",
-						downloadButton('downloadPCurve','Save p-curve results as CSV file')
+						downloadButton('downloadPCurve','Save p-curve results as CSV file', class="btn-sm")
 					),
 					HTML('<small>For information about p-curve, see <a href="http://p-curve.com/">http://p-curve.com/</a>.<br>
 					Simonsohn, U., Nelson, L. D., & Simmons, J. P. (2014). P-curve: A key to the file-drawer. <i>Journal of Experimental Psychology: General, 143</i>, 534–547. doi:10.1037/a0033242					
@@ -149,8 +150,12 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 # 					htmlOutput("meta")
 # 				),
 				tabPanel("Effect-sizes (beta)",
+					HTML('<p class="text-warning">The test statistics are converted to Cohen`s d (resp. Hedge`s g) wherever possible, based on the formulas provided by Borenstein, Hedges, Higgins, & Rothstein (2011). Warning: These effect size conversions are based on approximative formulas. Although they work good under many conditions, this cannot replace a proper meta-analysis!</p>'),
 					htmlOutput("effectsizes")
 				),
+				# tabPanel("Research style analysis (beta)",
+				# 	htmlOutput("researchstyle")
+				# ),
 				tabPanel("p values correctly reported?",
 					htmlOutput("report_table")
 				),

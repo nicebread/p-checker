@@ -3,6 +3,7 @@ library(shinyTable)
 library(stringr)
 library(dplyr)
 library(ggplot2)
+library(ggvis)
 
 # source inference functions
 source("helpers.R")
@@ -23,6 +24,24 @@ shinyServer(function(input, output, session) {
 		warnings=""					# keeps a vector of parser errors
 	)
 	
+	exportTbl <- function() {
+		if (nrow(dat$tbl) > 0) {
+			res <- c()
+			for (i in 1:nrow(dat$tbl)) {
+				switch(as.character(dat$tbl$type[i]),
+					"t" = {res <- c(res, paste0("t(", dat$tbl$df1[i], ")=", dat$tbl$statistic[i]))},
+					"f" = {res <- c(res, paste0("F(", dat$tbl$df1[i], ", ", dat$tbl$df2[i], ")=", dat$tbl$statistic[i]))},
+					"chi2" = {res <- c(res, paste0("chi2(", dat$tbl$df1[i], ")=", dat$tbl$statistic[i]))},
+					"r" = {res <- c(res, paste0("r(", dat$tbl$df1[i], ")=", f2(dat$tbl$statistic[i], decimalplaces(dat$tbl$statistic[i]), skipZero=TRUE)))},
+					"z" = {res <- c(res, paste0("Z=", dat$tbl$statistic[i]))}
+				)
+			}
+		
+			return(res)
+		} else {
+			return(NULL)
+		}
+	}
 	
 	# ---------------------------------------------------------------------
 	# Define the input field; populate with GET parameter if provided; or demo data if not.
@@ -105,7 +124,7 @@ shinyServer(function(input, output, session) {
 		# p-curve computations
 		
 		dat$pcurve_power <- ifelse(input$experimental==TRUE, input$pcurve_power/100, 1/3)
-		pps <- get_pp_values(type=tbl$type, statistic=tbl$statistic, df=tbl$df1, df2=tbl$df2, p.crit=input$pcurve_crit, power=dat$pcurve_power)
+		pps <- get_pp_values(type=tbl$type, statistic=tbl$statistic, df=tbl$df1, df2=tbl$df2, p.crit=input$pcurve_crit, power=dat$pcurve_power)$res
 		
 		tbl <- cbind(tbl, pps[, -1])
 
@@ -416,25 +435,35 @@ shinyServer(function(input, output, session) {
 		}
 	})
 	
-	output$pcurve_plot <- renderPlot({
+	output$pcurve_plot <- renderUI({
 		if (input$group_by_paper == TRUE | nrow(dat$tbl) == 0) {return(NULL)}
+				
+		send2pcurve.button.tag <- actionButton("send2pcurve", 'Do the same analysis at pcurve.com', icon=icon("arrow-circle-right"), class="btn-sm")
 		
-		plot(NA, xlim=c(0, input$pcurve_crit), ylim=c(0, 100), xlab="p-value", ylab="Percentage of p values")
-		abline(h=1/input$pcurve_crit, col="red", lty="dashed")
-		legend("topright", lty=c("solid", "dotted", "dashed"), col=c("blue", "darkgreen", "red"), legend=c("Observed p-curve", "Null of 33% power", "Null of nil effect"))
 		
-		# select only focal and significant hypothesis tests
-		tbl <- dat$tbl[dat$tbl$focal==TRUE & dat$tbl$significant==TRUE, ]
+		return(list(
+			renderPlot({
+				plot(NA, xlim=c(0, input$pcurve_crit), ylim=c(0, 100), xlab="p-value", ylab="Percentage of p values")
+				abline(h=1/input$pcurve_crit, col="red", lty="dashed")
+				legend("topright", lty=c("solid", "dotted", "dashed"), col=c("blue", "darkgreen", "red"), legend=c("Observed p-curve", "Null of 33% power", "Null of nil effect"))
 		
-		if (input$only_first_ES == TRUE) {
-			tbl <- tbl %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1)
-		}
+				# select only focal and significant hypothesis tests
+				tbl <- dat$tbl[dat$tbl$focal==TRUE & dat$tbl$significant==TRUE, ]
 		
-		bins <- table(cut(tbl$p.value, breaks=seq(0, input$pcurve_crit, by=.01)))
-		perc <- (bins/sum(bins))*100
-		lines(x=seq(0, input$pcurve_crit-.01, by=.01)+.005, y=perc, col="blue")
-		text(x=seq(0, input$pcurve_crit-.01, by=.01)+.007, y=perc + 5, col="blue", label=paste0(round(perc), "%"))
+				if (input$only_first_ES == TRUE) {
+					tbl <- tbl %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1)
+				}
 		
+				bins <- table(cut(tbl$p.value, breaks=seq(0, input$pcurve_crit, by=.01)))
+				perc <- (bins/sum(bins))*100
+				lines(x=seq(0, input$pcurve_crit-.01, by=.01)+.005, y=perc, col="blue")
+				text(x=seq(0, input$pcurve_crit-.01, by=.01)+.007, y=perc + 5, col="blue", label=paste0(round(perc), "%"))
+			}),
+			send2pcurve.button.tag,
+			HTML(paste0("<br><small>Note: This transfers the test statistics without paper identifier. That means, p-curve.com will compute an omnibus test with all values.</small><br>",
+		"<small>Note: If you want identical results to p-curve.com, turn off the 'Gracious rounding up' option at the left panel.</small><br><br>
+		"))
+		))
 	})
 	
 	
@@ -467,7 +496,7 @@ shinyServer(function(input, output, session) {
 				ps <- p(c(pcurve_tests$p_evidence, pcurve_tests$p_lack, pcurve_tests$p_hack), input$digits)
 			}
 
-								
+
 			result <- paste0(
 				"<h2>Statistical Inference on p-curve:</h2><h4>",
 				"<b>Studies contain evidential value</b>: <br>",
@@ -530,23 +559,105 @@ shinyServer(function(input, output, session) {
 	})
 	
 	
+	observeEvent(input$send2pcurve, {					
+		res1 <- paste(exportTbl(), collapse="\n")		
+		pcurve_link <- paste0("http://www.p-curve.com/app3/?tests=", URLencode(res1, reserved=TRUE))
+		browseURL(pcurve_link)
+	})
+	
 	# ---------------------------------------------------------------------
 	# Effect size panel	
 	
 	output$effectsizes <- renderUI({
-		if (nrow(dat$tbl) > 0) {
+		
+		TBL <- dat$tbl %>% filter(!is.na(g))
+		
+		if (nrow(TBL) > 0) {
 			
-			ES_plot <- ggplot(dat$tbl, aes(x=n.approx, y=abs(g))) + geom_point() + xlab("Approximate n") + ylab("Absolute Hedge's g") + geom_smooth(method=lm)
+			TBL$g.abs <- abs(TBL$g)
+			TBL$label <- paste0("Row ", 1:nrow(TBL), ": ", TBL$paper_id, " ", TBL$study_id)
+			TBL$id <- 1:nrow(TBL)
 			
-			ES_table <- dat$tblDisplay[, c("paper_id", "study_id", "type", "df1", "df2", "statistic", "p.value", "n.approx", "d", "g")]		
+			mysessions <- function(x) {
+			  if(is.null(x)) return(NULL)
+			  #notice below the id column is how ggvis can understand which session to show 
+			  row <- df[df$id == x$id, ]
+			  #prettyNum shows the number with thousand-comma separator  
+			  paste0(prettyNum(row$sessions, big.mark=",",scientific=F)) 
+			}
+			
+			#ES_plot <- ggplot(TBL, aes(x=n.approx, y=abs(g.abs))) + geom_point() + xlab("Approximate n (log scale)") + ylab("Absolute Hedge's g") + geom_smooth(method=lm) + scale_x_log10(breaks=round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)))
+			
+			ES_table <- dat$tblDisplay[!is.na(dat$tblDisplay$g), c("paper_id", "study_id", "type", "df1", "df2", "statistic", "p.value", "n.approx", "d", "g")]
+			
+			tooltip <- function(x) {
+			  if (is.null(x) | is.null(x$id)) return(NULL)
+			  return(TBL[TBL$id == x$id, "label"])
+			}
+			
+			# http://stackoverflow.com/questions/29785281/ggvis-with-tooltip-not-working-with-layer-smooths
+			TBL %>% 
+			  ggvis(x = ~n.approx, y = ~g.abs) %>%
+			  layer_points(key := ~id) %>%
+			  layer_model_predictions(model = "lm", se = FALSE, formula=g.abs~log(n.approx), stroke := "blue") %>%
+			  add_axis("x", ticks = 5, values = round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)), grid=TRUE, title="Approximate n (log scale)", format="d") %>%
+ 			  add_axis("y", title="Absolute Hedge's g") %>% 			  
+ 			  scale_numeric("x", trans="log") %>%			  			  
+  			  add_tooltip(tooltip, "hover") %>%
+			  bind_shiny("ES_plot")
 			
 			return(list(
-				HTML('<p class="text-warning">The test statistics are converted to Cohen`s d (resp. Hedge`s g) wherever possible. Warning: The effect size conversions are based on approximative formulas. Although they work good under most conditions, they should not be used for a proper meta-analysis!</p>'),
-				h2("Effect size vs. sample size"),
-				renderPlot({ES_plot}, res=150),
-				HTML(paste0("<h4>r = ", round(cor(dat$tbl$n.approx, dat$tbl$g, use="p"), 2), "</h4>")),
+				#renderPlot({ES_plot}, res=120),
+				#HTML(paste0("<h4>r = ", round(cor(log(TBL$n.approx), TBL$g, use="p"), 2), "</h4>")),
+				HTML("<h2>Effect size vs. sample size: <i>r</i> = ", round(cor(log(TBL$n.approx), TBL$g, use="p"), 2), "</h2>"),
+				ggvisOutput("ES_plot"),
+					HTML('<p>In a set of studies with a fixed-<i>n</i> design and the same underlying effect, sample size should be unrelated to the estimated effect size (ES). A negative correlation between sample size and ES typically is seen as an indicator of publication bias and/or <i>p</i>-hacking. This bias is attempted to be corrected by meta-analytic techniques such as <a href="http://onlinelibrary.wiley.com/doi/10.1002/jrsm.1095/abstract">PET-PEESE</a>.</p>
+					<p>You should be aware, however, that some valid processes can also lead to a correlation between ES and N:
+<ul>
+<li>A) If (proper) sequential analyses are employed, trials with (randomly) lower sample effect sizes will take longer to stop. This process will also induce the correlation.</li>
+<li>B) Imagine that different underlying effects are combined, and researchers did a proper a-priori power analysis, where they made a good guess about the true ES. Then they will plan larger samples for smaller effects, which will also introduce the correlation.</li>
+</ul>
+
+On the other hand, proper sequential designs (A) are very rare yet (for an introduction to frequentist sequential designs, see <a href="http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2333729">Lakens (2014)</a>; for an introduction to sequential Bayes factors, see <a href="http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2604513">Schönbrodt, Wagenmakers, Zehetleitner, & Perugini (2015)</a>). If different underlying effects are combined (B), we have a large heterogeneity in the meta-analysis, which is a problem for the model.
+</p>'),
 				HTML("<br><br><h2>Detailed results for each test statistic:</h2>"),
 				div(renderTable({ES_table}), style = "font-size:80%")
+			))	
+		} else {
+			return(NULL)
+		}
+	})
+	
+	
+	
+	
+	# ---------------------------------------------------------------------
+	# Effect size panel	
+	
+	output$researchstyle <- renderUI({
+		if (nrow(dat$tbl) > 0) {			
+			
+			library(pwr)
+			
+			full.n <- 1000
+			p_H1 <- 0.5
+			alpha <- .05
+			median.ES <- median(dat$tbl$g, na.rm=TRUE)
+			median.n <- ceiling(median(dat$tbl$n.approx, na.rm=TRUE))
+			median.pow <- pwr.t.test(n=median.n/2, d=median.ES)$power
+		
+			perc.sig.studies <- ((p_H1*median.pow) + ((1-p_H1)*alpha))
+			sig.studies <- floor(perc.sig.studies* (full.n/median.n))
+			perc.FPE <- ((1-p_H1)*alpha) / perc.sig.studies
+			perc.replicable <- perc.FPE*alpha+ (1-perc.FPE)*median.pow
+			
+			return(list(
+				HTML('<p class="text-warning">The test statistics are converted to Cohen`s d (resp. Hedge`s g) wherever possible, based on the formulas provided by Borenstein, Hedges, Higgins, & Rothstein (2011). Warning: These effect size conversions are based on approximative formulas. Although they work good under many conditions, this cannot replace a proper meta-analysis!</p>'),
+				h2("Research style analysis"),
+				HTML("<p>This analysis is based on an idea of <a href='https://willgervais.squarespace.com/s/Gervais-Jewell-Najle-Ng-SPPS-Power.pdf'>Gervais, Jewell, Najle, and Ng (2015)</a>, see also these blog post [<a href='http://willgervais.com/blog/2014/9/24/power-consequences'>1</a>][<a href='http://willgervais.com/blog/2015/5/14/a-powerful-nudge'>2</a>] by Will.</p>"),
+				HTML(paste0("<p>This set of studies has a <b>median effect size of Hedge's g = ", round(median.ES, 3), "</b> and a <b>median approximative sample size of n = ", median.n, "</b>. These numbers translate to an expected power of ", round(median.pow * 100), "%.</p>")),
+				HTML(paste0("<p>Suppose that a researcher has a pool of ", full.n," participants each year and runs studies in the style described above without <i>p</i>-hacking (but with selectively publishing only significant studies). A priori, hypotheses tend to be right ", p_H1*100, "% of the time.</p>
+				<p>In the course of the year, such a researcher will accumulate <b>", sig.studies, " significant studies</b>. Of these ", sig.studies, " significant studies, <b>", round(perc.FPE*100), "% will be false-positives</b>. In exact replication attempts (same <i>n</i>), <b>", round(perc.replicable*100), "% will be succesfully replicated.</b></p>"))
 			))	
 		} else {
 			return(NULL)
@@ -563,33 +674,12 @@ shinyServer(function(input, output, session) {
 	output$export <- renderUI({
 		if (nrow(dat$tbl) > 0) {
 			
-			res <- c()
-			for (i in 1:nrow(dat$tbl)) {
-				switch(as.character(dat$tbl$type[i]),
-					"t" = {res <- c(res, paste0("t(", dat$tbl$df1[i], ")=", dat$tbl$statistic[i]))},
-					"f" = {res <- c(res, paste0("F(", dat$tbl$df1[i], ", ", dat$tbl$df2[i], ")=", dat$tbl$statistic[i]))},
-					"chi2" = {res <- c(res, paste0("chi2(", dat$tbl$df1[i], ")=", dat$tbl$statistic[i]))},
-					"r" = {res <- c(res, paste0("r(", dat$tbl$df1[i], ")=", f2(dat$tbl$statistic[i], decimalplaces(dat$tbl$statistic[i]), skipZero=TRUE)))},
-					"z" = {res <- c(res, paste0("Z=", dat$tbl$statistic[i]))}
-				)
-			}			
-			
-			res1 <- paste(res, collapse="\n")
-			res2 <- paste(res, collapse="<br>")
-			
-			pcurve_link <- paste0("http://www.p-curve.com/app3/?tests=", URLencode(res1, reserved=TRUE))
+			res2 <- paste(exportTbl(), collapse="<br>")
 			
 			return(list(
 				HTML(paste0("<h4>Copy and share <a href='http://shinyapps.org/apps/p-checker/?syntax=", URLencode(input$txt, reserved=TRUE),
 				"'>this link</a> to send the p-checker analysis to others.</h4>")),
-				
-				HTML(paste0("<h4>Click <a href='", pcurve_link, "' target='_blank'>this link</a> to transfer the test statistics to p-curve.com.</h4>",
-				"<small>Note: This transfers the test statistics without paper identifier. That means, p-curve.com will compute an omnibus test with all values.</small>",
-				"<br><br>Alternatively: Copy and paste the syntax below to <a href='http://www.p-curve.com/app3'>p-curve.com</a><br>
-				<small>Note: If you want identical results to p-curve.com, turn off the 'Gracious rounding up' option at the left panel.</small><br><br>				
-				"
-				
-				)),
+								
 				HTML(paste0("<small>",res2, "</small>"))
 			))	
 		} else {
