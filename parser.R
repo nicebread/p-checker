@@ -154,7 +154,7 @@ parse_ES1 <- function(x, paper_id_fallback="_1", round_up=FALSE) {
 			}
 			t.value <- sqrt(dfs) * stat/sqrt(1 - stat^2)
 			p.value <- pt(t.value, dfs, lower.tail=FALSE)*2
-			d <- (2*t.value / sqrt(dfs))*stat.sign
+			d <- stat.sign*(2*stat) / sqrt(1-stat^2)
 			g <- d*(1 - (3/(4 * dfs - 1)))
 			n.approx <- dfs+2
 			},
