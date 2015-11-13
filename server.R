@@ -1,5 +1,5 @@
 library(shiny)
-library(shinyTable)
+#library(shinyTable)
 library(stringr)
 library(dplyr)
 library(ggplot2)
@@ -57,7 +57,7 @@ shinyServer(function(input, output, session) {
 		  }
 
 		return(list(
-			HTML(paste0('<textarea id="txt" rows="18" cols="45">', res, '</textarea>'))
+			HTML(paste0('<textarea class="form-control" style="resize:none;white-space:pre;word-wrap:normal;overflow-x:scroll;" id="txt" rows="18">', res, '</textarea>'))
 		))
 	 })
 	
@@ -185,8 +185,10 @@ shinyServer(function(input, output, session) {
 						round(sum(report_table$error.direction == "smaller")*100/nrow(report_table), input$digits), "%<br>",	
 					"</h4>"
 				)),
-				HTML("<br><br><h2>Detailed results for each test statistic:</h2>"),
-				div(renderTable({report_table}), style = "font-size:80%")
+				pancollapse.create(
+				  "Detailed results for each test statistic:",
+				  getTable(report_table)
+				)
 			))
 		}
 		
@@ -202,9 +204,15 @@ shinyServer(function(input, output, session) {
 			)
 			
 			return(list(
-				HTML("<h2>p-reporting analysis: Are there wrong reported p values?</h2>"),				
-				HTML("<h2>Results for each paper</h2>"),
-				renderTable({report_table2}),
+				HTML("<h2>p-reporting analysis: Are there wrong reported p values?</h2>"),	
+				
+				#HTML("<h2>Results for each paper</h2>"),
+				
+				pancollapse.create(
+				  "Results for each paper",
+				  getTable(report_table2)
+				),
+				#renderTable({report_table2}),
 				HTML(paste0(
 					"<h4>",
 					"<b>Percentage of p-values that are incorrectly rounded down</b> (", 
@@ -215,8 +223,10 @@ shinyServer(function(input, output, session) {
 						round(sum(report_table2$all.correct == FALSE)*100/nrow(report_table2), input$digits), "%<br>",		
 					"</h4>"
 				)),
-				HTML("<br><br><h2>Detailed results for each test statistic:</h2>"),
-				div(renderTable({report_table}), style = "font-size:80%")
+				pancollapse.create(
+				  "Detailed results for each test statistic",
+				  getTable(report_table)
+				)
 			))
 		}
 
@@ -242,8 +252,10 @@ shinyServer(function(input, output, session) {
 			}
 			
 			return(list(
-				HTML("<br><br><h2>Detailed results for each test statistic:</h2>"),
-				div(renderTable({rindex_table}), style = "font-size:80%")
+				pancollapse.create(
+				  "Detailed results for each test statistic",
+				  getTable(rindex_table)
+				)
 			))	
 		}
 	})
@@ -321,7 +333,11 @@ shinyServer(function(input, output, session) {
 					"<b>Average R-Index</b> = ", round(mean(rindex$r_index, na.rm=TRUE), input$digits),
 					"</h4>"
 				)),
-				renderTable({rindex})
+				#renderTable({rindex})
+				pancollapse.create(
+				  "Detailed results for each test statistic",
+				  getTable(rindex)
+				)
 			))
 		}
 	})
@@ -343,8 +359,10 @@ shinyServer(function(input, output, session) {
 			}
 			
 			return(list(
-				HTML("<br><br><h2>Detailed results for each test statistic:</h2>"),
-				div(renderTable({tiva_table}), style = "font-size:80%")
+				pancollapse.create(
+				  "Detailed results for each test statistic",
+				  getTable(tiva_table)
+				)
 			))	
 		}
 	})
@@ -427,8 +445,10 @@ shinyServer(function(input, output, session) {
 			}
 			
 			return(list(
-				HTML("<br><br><h2>Detailed results for each test statistic:</h2>"),
-				div(renderTable({pcurve_table}), style = "font-size:80%")
+				pancollapse.create(
+				  "Detailed results for each test statistic",
+				  getTable(pcurve_table)
+				)
 			))	
 		} else {
 			return(NULL)
@@ -553,7 +573,11 @@ shinyServer(function(input, output, session) {
 					"</h4>"
 				)),
 				
-				renderTable({pcurve})
+				
+				pancollapse.create(
+				  "Detailed results for each test statistic",
+				  getTable(pcurve)
+				)
 			))
 		}
 	})
@@ -570,10 +594,15 @@ shinyServer(function(input, output, session) {
 	
 	output$effectsizes <- renderUI({
 		
+	  print("I'm here")
+	  
 		TBL <- dat$tbl %>% filter(!is.na(g))
 		
 		if (nrow(TBL) > 0) {
 			
+		  isolate({
+		    
+		 
 			TBL$g.abs <- abs(TBL$g)
 			TBL$label <- paste0("Row ", 1:nrow(TBL), ": ", TBL$paper_id, " ", TBL$study_id)
 			TBL$id <- 1:nrow(TBL)
@@ -590,27 +619,31 @@ shinyServer(function(input, output, session) {
 			
 			ES_table <- dat$tblDisplay[!is.na(dat$tblDisplay$g), c("paper_id", "study_id", "type", "df1", "df2", "statistic", "p.value", "n.approx", "d", "g")]
 			
-			tooltip <- function(x) {
-			  if (is.null(x) | is.null(x$id)) return(NULL)
-			  return(TBL[TBL$id == x$id, "label"])
-			}
+			#tooltip <- function(x) {
+			  #if (is.null(x) | is.null(x$id)) return(NULL)
+			  #return(TBL[TBL$id == x$id, "label"])
+			#}
 			
 			# http://stackoverflow.com/questions/29785281/ggvis-with-tooltip-not-working-with-layer-smooths
-			TBL %>% 
-			  ggvis(x = ~n.approx, y = ~g.abs) %>%
-			  layer_points(key := ~id) %>%
-			  layer_model_predictions(model = "lm", se = FALSE, formula=g.abs~log(n.approx), stroke := "blue") %>%
-			  add_axis("x", ticks = 5, values = round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)), grid=TRUE, title="Approximate n (log scale)", format="d") %>%
- 			  add_axis("y", title="Absolute Hedge's g") %>% 			  
- 			  scale_numeric("x", trans="log") %>%			  			  
-  			  add_tooltip(tooltip, "hover") %>%
-			  bind_shiny("ES_plot")
+		
+			  
 			
+			#TBL %>% 
+			  #ggvis(x = ~n.approx, y = ~g.abs) %>%
+			  #layer_points(key := ~id) %>%
+			  #layer_model_predictions(model = "lm", se = FALSE, formula=g.abs~log(n.approx), stroke := "blue") %>%
+			  #add_axis("x", ticks = 5, values = round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)), grid=TRUE, title="Approximate n (log scale)", format="d") %>%
+ 			  #add_axis("y", title="Absolute Hedge's g") %>% 			  
+ 			  #scale_numeric("x", trans="log") %>%			  			  
+  			#add_tooltip(tooltip, "hover") %>%
+			  #bind_shiny("ES_plot")
+		  })
+		  
+		  
 			return(list(
 				#renderPlot({ES_plot}, res=120),
 				#HTML(paste0("<h4>r = ", round(cor(log(TBL$n.approx), TBL$g, use="p"), 2), "</h4>")),
 				HTML("<h2>Effect size vs. sample size: <i>r</i> = ", round(cor(log(TBL$n.approx), TBL$g, use="p"), 2), "</h2>"),
-				ggvisOutput("ES_plot"),
 					HTML('<p>In a set of studies with a fixed-<i>n</i> design and the same underlying effect, sample size should be unrelated to the estimated effect size (ES). A negative correlation between sample size and ES typically is seen as an indicator of publication bias and/or <i>p</i>-hacking. This bias is attempted to be corrected by meta-analytic techniques such as <a href="http://onlinelibrary.wiley.com/doi/10.1002/jrsm.1095/abstract">PET-PEESE</a>.</p>
 					<p>You should be aware, however, that some valid processes can also lead to a correlation between ES and N:
 <ul>
@@ -620,14 +653,60 @@ shinyServer(function(input, output, session) {
 
 On the other hand, proper sequential designs (A) are very rare yet (for an introduction to frequentist sequential designs, see <a href="http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2333729">Lakens (2014)</a>; for an introduction to sequential Bayes factors, see <a href="http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2604513">Schönbrodt, Wagenmakers, Zehetleitner, & Perugini (2015)</a>). If different underlying effects are combined (B), we have a large heterogeneity in the meta-analysis, which is a problem for the model.
 </p>'),
-				HTML("<br><br><h2>Detailed results for each test statistic:</h2>"),
-				div(renderTable({ES_table}), style = "font-size:80%")
+				pancollapse.create(
+				  "Detailed results for each test statistic",
+				  getTable(ES_table)
+				)
 			))	
 		} else {
 			return(NULL)
 		}
 	})
 	
+
+	
+	tooltip <- function(x) {
+	  if (is.null(x) | is.null(x$id)) return(NULL)
+	  TBL <- dat$tbl %>% filter(!is.na(g))
+	  TBL$g.abs <- abs(TBL$g)
+	  TBL$label <- paste0("Row ", 1:nrow(TBL), ": ", TBL$paper_id, " ", TBL$study_id)
+	  TBL$id <- 1:nrow(TBL)
+	  
+	  TBL[TBL$id == x$id, "label"]
+	}
+	
+	
+	reactive({
+	  TBL <- dat$tbl %>% filter(!is.na(g))
+	        
+	   if (nrow(TBL) > 0) {  
+	     TBL$g.abs <- abs(TBL$g)
+	     TBL$label <- paste0("Row ", 1:nrow(TBL), ": ", TBL$paper_id, " ", TBL$study_id)
+	     TBL$id <- 1:nrow(TBL)
+	     
+	    
+	     
+	     print('Reactiv Expr: TBL exists')
+	     
+	     TBL %>% 
+	       ggvis(x = ~n.approx, y = ~g.abs) %>%
+	       layer_points(key := ~id) %>%
+	       layer_model_predictions(model = "lm", se = FALSE, formula=g.abs~log(n.approx), stroke := "blue") %>%
+	       add_axis("x", ticks = 5, values = round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)), grid=TRUE, title="Approximate n (log scale)", format="d") %>%
+	       add_axis("y", title="Absolute Hedge's g") %>% 			  
+	       scale_numeric("x", trans="log") %>%	  			  
+	       add_tooltip(tooltip, "click") 
+
+	   } else {
+	     print('Reactiv Expr: TBL doesnt exist')
+	     
+	     # dummy plot
+	     me <- data.frame(x = 1, y = 1)
+	     me %>% 
+	       ggvis(x = ~x, y = ~y) %>%	  
+	       add_tooltip(tooltip, "click") 
+	   }
+	}) %>% bind_shiny("ES_plot")
 	
 	
 	

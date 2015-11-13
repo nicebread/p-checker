@@ -1,6 +1,6 @@
 library(shiny)
 library(shinythemes)
-library(shinyTable)
+#library(shinyTable)
 library(shinyBS) # Additional Bootstrap Controls
 library(ggvis)
 
@@ -9,13 +9,15 @@ source("snippets/quick_start.R")
 source("snippets/responsibly.R")
 source("snippets/extended_manual.R")
 source("snippets/about.R")
-
+source("pancollapse.R")
 
 shinyUI(fluidPage(theme = shinytheme("spacelab"),
 
 # Accordion/ folding animation for quickstart etc.
 	tags$head(tags$link(rel="stylesheet", type="text/css", href="accordion.css")),
 	
+  pancollapse(),
+
 	title = "One-for-all p-hacking detector",
 	
 	titlePanel("p-checker: The one-for-all p-value analyzer."),
@@ -23,7 +25,7 @@ shinyUI(fluidPage(theme = shinytheme("spacelab"),
 	# display the accordion panels
 	HTML(paste0('<div class="row">', qs_panel, responsibly_panel, '</div>')),	
 	HTML(paste0('<div class="row">', extended_manual_panel, about_panel, '</div>')),
-	
+	pancollapse.create("Info", loadHTML('snippets/about.html')),
 	# ---------------------------------------------------------------------
 	# The actual app ...
 	
@@ -151,7 +153,9 @@ shinyUI(fluidPage(theme = shinytheme("spacelab"),
 # 				),
 				tabPanel("Effect-sizes (beta)",
 					HTML('<p class="text-warning">The test statistics are converted to Cohen`s d (resp. Hedge`s g) wherever possible, based on the formulas provided by Borenstein, Hedges, Higgins, & Rothstein (2011). Warning: These effect size conversions are based on approximative formulas. Although they work good under many conditions, this cannot replace a proper meta-analysis!</p>'),
+					ggvisOutput("ES_plot"),
 					htmlOutput("effectsizes")
+					
 				),
 				# tabPanel("Research style analysis (beta)",
 				# 	htmlOutput("researchstyle")

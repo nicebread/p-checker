@@ -9,7 +9,7 @@ about_panel <- '
     </div>
     <div id="collapse3" class="panel-collapse collapse">
       <div class="panel-body">
-	  <i>(c) 2015 by <a href="mailto:felix@nicerbead.de">Felix SchÃ¶nbrodt</a> (<a href="http://www.nicebread.de">www.nicebread.de</a>). The source code of this app is licensed under the open GPL-2 license and is published on <a href="https://github.com/nicebread/p-checker">Github</a>.</i>
+	  <i>(c) 2015 by <a href="mailto:felix@nicerbead.de">Felix Schönbrodt</a> (<a href="http://www.nicebread.de">www.nicebread.de</a>). The source code of this app is licensed under the open GPL-2 license and is published on <a href="https://github.com/nicebread/p-checker">Github</a>.</i>
 	  
 	  <br><br>
 	  
@@ -26,7 +26,7 @@ about_panel <- '
 	  <br/><br/>
 	  Schimmack, U. (2014). <i>Quantifying Statistical Research Integrity: The Replicability-Index</i>. Retrieved from http://www.r-index.org
 	  <br/><br/>
-	  SchÃ¶nbrodt, F. D. (2015). <i>p-checker: One-for-all p-value analyzer.</i> Retrieved from http://shinyapps.org/apps/p-checker/.
+	  Schönbrodt, F. D. (2015). <i>p-checker: One-for-all p-value analyzer.</i> Retrieved from http://shinyapps.org/apps/p-checker/.
 	  <br/><br/>	  
 	  
 	  
