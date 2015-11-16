@@ -285,7 +285,7 @@ shinyServer(function(input, output, session) {
 		if (input$group_by_paper == FALSE) {
 			success_rate <- sum(tbl$p.value < tbl$p.crit, na.rm=TRUE)/nrow(tbl)
 			obs_power0 <- tbl %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1) %>% select(median.obs.pow)
-			obs_power <- mean(obs_power0$median.obs.pow, na.rm=TRUE)
+			obs_power <- median(obs_power0$median.obs.pow, na.rm=TRUE)
 			inflation_rate <- success_rate - obs_power
 			r_index <- obs_power - inflation_rate
 		
@@ -294,7 +294,7 @@ shinyServer(function(input, output, session) {
 			result <- paste0(
 				"<h2>R-Index analysis:</h2><h4>",
 				"<b>Success rate</b> = ", 	round(success_rate, 4), "<br>",
-				"<b>Mean observed power</b> = ", round(obs_power, 4), "<br>",
+				"<b>Median observed power</b> = ", round(obs_power, 4), "<br>",
 				"<b>Inflation rate</b> = ", round(inflation_rate, 4), "<br>",
 				"<b>R-Index</b> = ", round(r_index, 4),
 				"</h4>"
@@ -313,7 +313,7 @@ shinyServer(function(input, output, session) {
 			
 			tbl <- tbl %>% group_by(paper_id, study_id)
 			obs_power0 <- tbl %>% filter(row_number() <= 1) %>% select(median.obs.pow)
-			obs_power <- obs_power0 %>% group_by(paper_id) %>% select(median.obs.pow) %>% summarise_each(funs(mean))
+			obs_power <- obs_power0 %>% group_by(paper_id) %>% select(median.obs.pow) %>% summarise_each(funs(median))
 			
 			rindex <- inner_join(success_rate, obs_power, by="paper_id")
 			rindex <- rindex %>% mutate(
@@ -328,7 +328,7 @@ shinyServer(function(input, output, session) {
 				HTML(paste0(
 					"<h4>",
 					"<b>Average success rate</b> = ", 	round(mean(rindex$success_rate, na.rm=TRUE), input$digits), "<br>",
-					"<b>Average mean observed power</b> = ", round(mean(rindex$median.obs.pow, na.rm=TRUE), input$digits), "<br>",
+					"<b>Average median observed power</b> = ", round(mean(rindex$median.obs.pow, na.rm=TRUE), input$digits), "<br>",
 					"<b>Average inflation rate</b> = ", round(mean(rindex$inflation_rate, na.rm=TRUE), input$digits), "<br>",
 					"<b>Average R-Index</b> = ", round(mean(rindex$r_index, na.rm=TRUE), input$digits),
 					"</h4>"
@@ -385,7 +385,7 @@ shinyServer(function(input, output, session) {
 
 			result <- paste0(
 				"<h2>Test of insufficient variance (TIVA)</h2>",
-				"<small>Variances &lt; 1 suggest bias. The chi2 tests the H0 that variance = 1.</small>",
+				"<small>Variances &lt; 1 suggest bias. The chi2 tests the H0 that variance <= 1.</small>",
 
 				"<h4>",
 				"Variance = ", round(tiva$var.z, 4), "<br>",
