@@ -187,7 +187,7 @@ shinyServer(function(input, output, session) {
 				)),
 				pancollapse.create(
 				  "Detailed results for each test statistic:",
-				  getTable(report_table)
+				  getTable(report_table, classWhenValueFun('reporting.error', T, 'danger') )
 				)
 			))
 		}
@@ -254,7 +254,7 @@ shinyServer(function(input, output, session) {
 			return(list(
 				pancollapse.create(
 				  "Detailed results for each test statistic",
-				  getTable(rindex_table)
+				  getTable(rindex_table, function(x){ if(!x[["significant"]]){"info"} })
 				)
 			))	
 		}

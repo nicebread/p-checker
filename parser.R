@@ -321,3 +321,6 @@ parse_ES <- function(x, round_up=FALSE) {
 	attr(res2, "warnings") <- Ws
 	return(res2)
 }
+
+
+

@@ -9,38 +9,52 @@ pancollapse <- function(){
 }
 
 pancollapse.create <- function(title, content){
-  return(
-    div(class="panel panel-primary", 
-      div(class="panel-heading panel-heading-collapse",
-        h3(class="panel-title", 
-          title, 
-          tags$span(class="pull-right", 
-            tags$i(class="glyphicon glyphicon-chevron-up")
-          )
-        )
-      ),
-      div(class="panel-body panel-collapse collapse", content)
-    )
+  HTML('<div class="panel panel-default"><div class="panel-heading panel-heading-collapse"><h4 class="panel-title">',
+       title,
+       '<span class="pull-right"><i class="glyphicon glyphicon-chevron-up"></i></span></h4></div><div class="panel-body panel-collapse collapse">',
+       content,
+       '</div></div>'
   )
 }
 
-getTable <- function(data) {
-  return(
-    div(class="table-responsive",
-      HTML(
-        paste(
-          utils::capture.output(
-            print(
-              xtable(data), 
-              type = "html", 
-              html.table.attributes = paste("style=\"font-size:80%;\" class=\"", htmlEscape("data table table-bordered table-condensed", TRUE), "\"", sep = "")
-            )
-          ), 
-          collapse = "\n"
-        )
-      )
-    )
+getTable <- function(df, cbGetClass = NULL) {
+  thead <- paste0('<th>', htmlEscape(names(df)), '</th>', collapse='')
+  
+  tbody <- rep("",nrow(df))
+  
+  for(row in 1:nrow(df)) {
+    format <- '<td>%s</td>'
+
+    tbody[row] <- paste0(sapply(df[row,], function(x){ sprintf('<td>%s</td>', htmlEscape(as.character(x))) }), collapse='');
+    
+    cls <- NULL
+    if( is.function(cbGetClass) ) {
+      cls <- cbGetClass(df[row,])
+    } 
+    
+    if(is.character(cls)) {
+      tbody[row] <- sprintf('<tr class="%s">%s</tr>', htmlEscape(cls), tbody[row])
+    } else {
+      tbody[row] <- sprintf('<tr>%s</tr>', tbody[row])
+    }
+  }
+  
+  tbody2 <- paste0(tbody, collapse='')
+  
+  HTML(
+    '<div class="table-responsive"><table style="font-size:80%;" class="data table table-condensed"><thead><tr>', 
+    thead, 
+    '</tr></thead><tbody>',
+    tbody2,
+    '</tbody></table></div>'
   )
+}
+
+classWhenValueFun <- function(col.name, value, cls) {
+  return(function(named.row){
+    tmp <- named.row[[col.name]]
+    if(!is.null(tmp) && !is.na(tmp) && tmp == value) cls
+  })
 }
 
 loadHTML <- function(filename) {

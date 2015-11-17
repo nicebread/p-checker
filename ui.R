@@ -23,9 +23,9 @@ shinyUI(fluidPage(theme = shinytheme("spacelab"),
 	titlePanel("p-checker: The one-for-all p-value analyzer."),
 	
 	# display the accordion panels
-	HTML(paste0('<div class="row">', qs_panel, responsibly_panel, '</div>')),	
-	HTML(paste0('<div class="row">', extended_manual_panel, about_panel, '</div>')),
-	pancollapse.create("Info", loadHTML('snippets/about.html')),
+	#HTML(paste0('<div class="row">', qs_panel, responsibly_panel, '</div>')),	
+	#HTML(paste0('<div class="row">', extended_manual_panel, about_panel, '</div>')),
+	#pancollapse.create("Info", loadHTML('snippets/about.html')),
 	# ---------------------------------------------------------------------
 	# The actual app ...
 	
