@@ -5,10 +5,10 @@ library(shinyBS) # Additional Bootstrap Controls
 library(ggvis)
 
 # Load the panels with the manual etc.
-source("snippets/quick_start.R")
-source("snippets/responsibly.R")
-source("snippets/extended_manual.R")
-source("snippets/about.R")
+# source("snippets/quick_start.R")
+# source("snippets/responsibly.R")
+# source("snippets/extended_manual.R")
+# source("snippets/about.R")
 source("pancollapse.R")
 
 shinyUI(fluidPage(theme = shinytheme("spacelab"),
@@ -26,6 +26,7 @@ shinyUI(fluidPage(theme = shinytheme("spacelab"),
 	#HTML(paste0('<div class="row">', qs_panel, responsibly_panel, '</div>')),	
 	#HTML(paste0('<div class="row">', extended_manual_panel, about_panel, '</div>')),
 	#pancollapse.create("Info", loadHTML('snippets/about.html')),
+
 	# ---------------------------------------------------------------------
 	# The actual app ...
 	
