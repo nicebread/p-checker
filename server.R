@@ -583,7 +583,8 @@ shinyServer(function(input, output, session) {
 	})
 	
 	
-	observeEvent(input$send2pcurve, {					
+	observeEvent(input$send2pcurve, {
+		print("Send to pcurve.com!")
 		res1 <- paste(exportTbl(), collapse="\n")		
 		pcurve_link <- paste0("http://www.p-curve.com/app3/?tests=", URLencode(res1, reserved=TRUE))
 		browseURL(pcurve_link)
