@@ -177,7 +177,7 @@ shinyServer(function(input, output, session) {
 		# Summary
 		if (input$group_by_paper == FALSE) {
 			return(list(
-				HTML("<h2>p-reporting analysis: Are there wrong reported p values?</h2>"),				
+				HTML("<h3>p-reporting analysis: Are there wrongly reported p values?</h3>"),				
 				HTML(paste0(
 					"<h4>",
 					"<b>Percentage of p-values that are incorrectly rounded down</b> (", 
@@ -185,7 +185,7 @@ shinyServer(function(input, output, session) {
 						round(sum(report_table$error.direction == "smaller")*100/nrow(report_table), input$digits), "%<br>",	
 					"</h4>"
 				)),
-				pancollapse.create(
+				panel.create(
 				  "Detailed results for each test statistic:",
 				  getTable(report_table, classWhenValueFun('reporting.error', T, 'danger') )
 				)
@@ -204,9 +204,9 @@ shinyServer(function(input, output, session) {
 			)
 			
 			return(list(
-				HTML("<h2>p-reporting analysis: Are there wrong reported p values?</h2>"),	
+				HTML("<h3>p-reporting analysis: Are there wrongly reported p values?</h3>"),	
 				
-				#HTML("<h2>Results for each paper</h2>"),
+				#HTML("<h3>Results for each paper</h3>"),
 				
 				pancollapse.create(
 				  "Results for each paper",
@@ -254,7 +254,7 @@ shinyServer(function(input, output, session) {
 			return(list(
 				pancollapse.create(
 				  "Detailed results for each test statistic",
-				  getTable(rindex_table, function(x){ if(!x[["significant"]]){"info"} })
+				  getTable(rindex_table, function(x){ if(!x[["significant"]]){"danger"} })
 				)
 			))	
 		}
@@ -292,7 +292,7 @@ shinyServer(function(input, output, session) {
 			tiva <- TIVA(tbl$p.value)
 			
 			result <- paste0(
-				"<h2>R-Index analysis:</h2><h4>",
+				"<h3>R-Index analysis:</h3><h4>",
 				"<b>Success rate</b> = ", 	round(success_rate, 4), "<br>",
 				"<b>Median observed power</b> = ", round(obs_power, 4), "<br>",
 				"<b>Inflation rate</b> = ", round(inflation_rate, 4), "<br>",
@@ -324,7 +324,7 @@ shinyServer(function(input, output, session) {
 			dat$rindex <- rindex
 			
 			return(list(
-				HTML("<h2>R-Index analysis:</h2>"),				
+				HTML("<h3>R-Index analysis:</h3>"),				
 				HTML(paste0(
 					"<h4>",
 					"<b>Average success rate</b> = ", 	round(mean(rindex$success_rate, na.rm=TRUE), input$digits), "<br>",
@@ -384,7 +384,7 @@ shinyServer(function(input, output, session) {
 			tiva <- TIVA(tbl$p.value)
 
 			result <- paste0(
-				"<h2>Test of insufficient variance (TIVA)</h2>",
+				"<h3>Test of insufficient variance (TIVA):</h3>",
 				"<small>Variances &lt; 1 suggest bias. The chi2 tests the H0 that variance <= 1.</small>",
 
 				"<h4>",
@@ -410,12 +410,12 @@ shinyServer(function(input, output, session) {
 			
 			return(list(
 				HTML(paste0(
-					"<h2>Test of insufficient variance (TIVA)</h2>",
+					"<h3>Test of insufficient variance (TIVA):</h3>",
 					"<small>Variances &lt; 1 suggest bias. The chi2 tests the H0 that variance = 1.</small>",
 					"<small>Note: TIVA selects only the <b>first</b> p value of each study!</small>"
 				)),				
 				HTML(paste0(
-					"<h2>Summary on ", nrow(tiva), " TIVA analyses:</h2><h4>",
+					"<h3>Summary on ", nrow(tiva), " TIVA analyses:</h3><h4>",
 					"<b>Average variance</b> = ", round(mean(tiva$var.z, na.rm=TRUE), input$digits), "<br>",
 					"<b>% of papers with variance &lt; 1</b>: ", round(sum(tiva$var.z<1)/nrow(tiva)*100, input$digits), "%<br>",
 					"<b>% of papers with variance significantly &lt; 1</b>: ", round(sum(tiva$p.value<.05)/nrow(tiva)*100, input$digits), "%",
@@ -465,7 +465,7 @@ shinyServer(function(input, output, session) {
 			renderPlot({
 				plot(NA, xlim=c(0, input$pcurve_crit), ylim=c(0, 100), xlab="p-value", ylab="Percentage of p values")
 				abline(h=1/input$pcurve_crit, col="red", lty="dashed")
-				legend("topright", lty=c("solid", "dotted", "dashed"), col=c("blue", "darkgreen", "red"), legend=c("Observed p-curve", "Null of 33% power", "Null of nil effect"))
+				legend("topright", lty=c("solid", "dotted", "dashed"), col=c(COLORS$BLUE, "darkgreen", "red"), legend=c("Observed p-curve", "Null of 33% power", "Null of nil effect"))
 		
 				# select only focal and significant hypothesis tests
 				tbl <- dat$tbl[dat$tbl$focal==TRUE & dat$tbl$significant==TRUE, ]
@@ -476,8 +476,8 @@ shinyServer(function(input, output, session) {
 		
 				bins <- table(cut(tbl$p.value, breaks=seq(0, input$pcurve_crit, by=.01)))
 				perc <- (bins/sum(bins))*100
-				lines(x=seq(0, input$pcurve_crit-.01, by=.01)+.005, y=perc, col="blue")
-				text(x=seq(0, input$pcurve_crit-.01, by=.01)+.007, y=perc + 5, col="blue", label=paste0(round(perc), "%"))
+				lines(x=seq(0, input$pcurve_crit-.01, by=.01)+.005, y=perc, col=COLORS$BLUE)
+				text(x=seq(0, input$pcurve_crit-.01, by=.01)+.007, y=perc + 5, col=COLORS$BLUE, label=paste0(round(perc), "%"))
 			}),
 			send2pcurve.button.tag,
 			HTML(paste0("<br><small>Note: This transfers the test statistics without paper identifier. That means, p-curve.com will compute an omnibus test with all values.</small><br>",
@@ -518,7 +518,7 @@ shinyServer(function(input, output, session) {
 
 
 			result <- paste0(
-				"<h2>Statistical Inference on p-curve:</h2><h4>",
+				"<h3>Statistical Inference on p-curve:</h3><h4>",
 				"<b>Studies contain evidential value</b>: <br>",
 				teststring, statistics[1], "; ", ps[1], "<br>",
 				"<small>A significant p value indicates that the p-curve is right-skewed, which indicates evidential value.</small><br><br>",
@@ -554,10 +554,10 @@ shinyServer(function(input, output, session) {
 
 			return(list(
 				HTML(paste0(
-					"<h2>Statistical Inference on p-curve:</h2>"
+					"<h3>Statistical Inference on p-curve:</h3>"
 				)),				
 				HTML(paste0(
-					"<h2>Summary on ", nrow(pcurve), " p-curves:</h2><h4>",
+					"<h3>Summary on ", nrow(pcurve), " p-curves:</h3><h4>",
 					"<b>% of papers with evidential value</b>: ", round(sum(pcurve$p_evidence<.05)/nrow(pcurve)*100, 1), "%<br>",
 					"<b>% of papers with lack of evidence</b>: ", round(sum(pcurve$p_lack<.05)/nrow(pcurve)*100, 1), "%<br>",
 					"<b>% of papers intensely p-hacked</b>: ", round(sum(pcurve$p_hack<.05)/nrow(pcurve)*100, 1), "%<br>",
@@ -566,7 +566,7 @@ shinyServer(function(input, output, session) {
 				)),
 
 				HTML(paste0(
-					"<h2>Summary on ", sum(pcurve$inconclusive==FALSE), " p-curves which are not inconclusive:</h2><h4>",
+					"<h3>Summary on ", sum(pcurve$inconclusive==FALSE), " p-curves which are not inconclusive:</h3><h4>",
 					"<b>% of papers with evidential value</b>: ", round(sum(pcurve$p_evidence<.05)/sum(pcurve$inconclusive==FALSE)*100, 1), "%<br>",
 					"<b>% of papers with lack of evidence</b>: ", round(sum(pcurve$p_lack<.05)/sum(pcurve$inconclusive==FALSE)*100, 1), "%<br>",
 					"<b>% of papers intensely p-hacked</b>: ", round(sum(pcurve$p_hack<.05)/sum(pcurve$inconclusive==FALSE)*100, 1), "%<br>",
@@ -631,7 +631,7 @@ shinyServer(function(input, output, session) {
 			#TBL %>% 
 			  #ggvis(x = ~n.approx, y = ~g.abs) %>%
 			  #layer_points(key := ~id) %>%
-			  #layer_model_predictions(model = "lm", se = FALSE, formula=g.abs~log(n.approx), stroke := "blue") %>%
+			  #layer_model_predictions(model = "lm", se = FALSE, formula=g.abs~log(n.approx), stroke := COLORS$BLUE) %>%
 			  #add_axis("x", ticks = 5, values = round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)), grid=TRUE, title="Approximate n (log scale)", format="d") %>%
  			  #add_axis("y", title="Absolute Hedge's g") %>% 			  
  			  #scale_numeric("x", trans="log") %>%			  			  
@@ -643,7 +643,7 @@ shinyServer(function(input, output, session) {
 			return(list(
 				#renderPlot({ES_plot}, res=120),
 				#HTML(paste0("<h4>r = ", round(cor(log(TBL$n.approx), TBL$g, use="p"), 2), "</h4>")),
-				HTML("<h2>Effect size vs. sample size: <i>r</i> = ", round(cor(log(TBL$n.approx), TBL$g, use="p"), 2), "</h2>"),
+				HTML("<h3>Effect size vs. sample size: <i>r</i> = ", round(cor(log(TBL$n.approx), TBL$g, use="p"), 2), "</h3>"),
 					HTML('<p>In a set of studies with a fixed-<i>n</i> design and the same underlying effect, sample size should be unrelated to the estimated effect size (ES). A negative correlation between sample size and ES typically is seen as an indicator of publication bias and/or <i>p</i>-hacking. This bias is attempted to be corrected by meta-analytic techniques such as <a href="http://onlinelibrary.wiley.com/doi/10.1002/jrsm.1095/abstract">PET-PEESE</a>.</p>
 					<p>You should be aware, however, that some valid processes can also lead to a correlation between ES and N:
 <ul>
@@ -691,7 +691,7 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	     TBL %>% 
 	       ggvis(x = ~n.approx, y = ~g.abs) %>%
 	       layer_points(key := ~id) %>%
-	       layer_model_predictions(model = "lm", se = FALSE, formula=g.abs~log(n.approx), stroke := "blue") %>%
+	       layer_model_predictions(model = "lm", se = FALSE, formula=g.abs~log(n.approx), stroke := COLORS$BLUE) %>%
 	       add_axis("x", ticks = 5, values = round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)), grid=TRUE, title="Approximate n (log scale)", format="d") %>%
 	       add_axis("y", title="Absolute Hedge's g") %>% 			  
 	       scale_numeric("x", trans="log") %>%	  			  
@@ -732,7 +732,7 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 			
 			return(list(
 				HTML('<p class="text-warning">The test statistics are converted to Cohen`s d (resp. Hedge`s g) wherever possible, based on the formulas provided by Borenstein, Hedges, Higgins, & Rothstein (2011). Warning: These effect size conversions are based on approximative formulas. Although they work good under many conditions, this cannot replace a proper meta-analysis!</p>'),
-				h2("Research style analysis"),
+				h3("Research style analysis"),
 				HTML("<p>This analysis is based on an idea of <a href='https://willgervais.squarespace.com/s/Gervais-Jewell-Najle-Ng-SPPS-Power.pdf'>Gervais, Jewell, Najle, and Ng (2015)</a>, see also these blog post [<a href='http://willgervais.com/blog/2014/9/24/power-consequences'>1</a>][<a href='http://willgervais.com/blog/2015/5/14/a-powerful-nudge'>2</a>] by Will.</p>"),
 				HTML(paste0("<p>This set of studies has a <b>median effect size of Hedge's g = ", round(median.ES, 3), "</b> and a <b>median approximative sample size of n = ", median.n, "</b>. These numbers translate to an expected power of ", round(median.pow * 100), "%.</p>")),
 				HTML(paste0("<p>Suppose that a researcher has a pool of ", full.n," participants each year and runs studies in the style described above without <i>p</i>-hacking (but with selectively publishing only significant studies). A priori, hypotheses tend to be right ", p_H1*100, "% of the time.</p>

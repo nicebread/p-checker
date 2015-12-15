@@ -8,10 +8,27 @@ pancollapse <- function(){
             tags$script(src="pancollapse.js"))
 }
 
+alert.create <- function(content, style="info") {
+  HTML(paste0('<div class="alert alert-', style, ' alert-dismissible" role="alert">'),
+    '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>',
+    content, 
+    '</div>'
+  )
+}
+
 pancollapse.create <- function(title, content){
   HTML('<div class="panel panel-default"><div class="panel-heading panel-heading-collapse"><h4 class="panel-title">',
        title,
        '<span class="pull-right"><i class="glyphicon glyphicon-chevron-up"></i></span></h4></div><div class="panel-body panel-collapse collapse">',
+       content,
+       '</div></div>'
+  )
+}
+
+panel.create <- function(title, content) {
+  HTML('<div class="panel panel-default"><div class="panel-heading"><h4 class="panel-title">',
+       title,
+       '</h4></div><div class="panel-body">',
        content,
        '</div></div>'
   )
