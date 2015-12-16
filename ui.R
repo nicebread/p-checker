@@ -8,10 +8,10 @@ source("pancollapse.R")
 
 shinyUI(navbarPage(title="", 
   
-  tabPanel("P-Checker", 
+  tabPanel("p-checker", 
   	# ---------------------------------------------------------------------
   	# The actual app ...
-  	HTML("<h2><strong>P-Checker</strong> The one-for-all p-value analyzer</h2>"),
+  	HTML("<h2><strong><i>p</i>-checker</strong> The one-for-all <i>p</i>-value analyzer</h2>"),
   	fluidRow(
   		column(width=4,
   			
@@ -160,5 +160,5 @@ shinyUI(navbarPage(title="",
   tabPanel('About', loadHTML('snippets/about.html')),
   header = pancollapse(),
   theme = shinytheme("spacelab"), 
-  windowTitle = "One-for-all p-hacking detector"
+  windowTitle = "One-for-all p-value analyzer"
 ))

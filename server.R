@@ -385,7 +385,7 @@ shinyServer(function(input, output, session) {
 
 			result <- paste0(
 				"<h3>Test of insufficient variance (TIVA):</h3>",
-				"<small>Variances &lt; 1 suggest bias. The chi2 tests the H0 that variance <= 1.</small>",
+				"<small>Variances &lt; 1 suggest bias. The chi2 tests the H0 that variance >= 1; a significant result indicates that the empirical variance is significantly smaller than 1.</small>",
 
 				"<h4>",
 				"Variance = ", round(tiva$var.z, 4), "<br>",
@@ -584,7 +584,6 @@ shinyServer(function(input, output, session) {
 	
 	
 	observeEvent(input$send2pcurve, {
-		print("Send to pcurve.com!")
 		res1 <- paste(exportTbl(), collapse="\n")		
 		pcurve_link <- paste0("http://www.p-curve.com/app3/?tests=", URLencode(res1, reserved=TRUE))
 		browseURL(pcurve_link)
@@ -595,15 +594,11 @@ shinyServer(function(input, output, session) {
 	
 	output$effectsizes <- renderUI({
 		
-	  print("I'm here")
-	  
 		TBL <- dat$tbl %>% filter(!is.na(g))
 		
 		if (nrow(TBL) > 0) {
 			
 		  isolate({
-		    
-		 
 			TBL$g.abs <- abs(TBL$g)
 			TBL$label <- paste0("Row ", 1:nrow(TBL), ": ", TBL$paper_id, " ", TBL$study_id)
 			TBL$id <- 1:nrow(TBL)
@@ -641,10 +636,14 @@ shinyServer(function(input, output, session) {
 		  })
 		  
 		  
+		  # Begg & Mazumdar Rank correlation test for publication bias
+		  suppressWarnings({
+			  Begg <- cor.test(TBL$n.approx, TBL$g, use="p", method="kendall")
+		  })
+		  
 			return(list(
-				#renderPlot({ES_plot}, res=120),
-				#HTML(paste0("<h4>r = ", round(cor(log(TBL$n.approx), TBL$g, use="p"), 2), "</h4>")),
-				HTML("<h3>Effect size vs. sample size: <i>r</i> = ", round(cor(log(TBL$n.approx), TBL$g, use="p"), 2), "</h3>"),
+				HTML(paste0("<h4>Rank correlation of effect size vs. sample size (Begg & Mazumdar's (1994) test for publication bias):</h4><h4>Kendall's <i>tau</i> = ", round(Begg$estimate, 2), " (", p(Begg$p.value), ")</h4>")),
+				HTML("<p>A significant negative rank correlation indicates publication bias. The test has a good Type I error control (i.e., it only gives false alarms of publication bias around the nominal 5% level) but relatively low power to detect actual publication bias.</p>"),
 					HTML('<p>In a set of studies with a fixed-<i>n</i> design and the same underlying effect, sample size should be unrelated to the estimated effect size (ES). A negative correlation between sample size and ES typically is seen as an indicator of publication bias and/or <i>p</i>-hacking. This bias is attempted to be corrected by meta-analytic techniques such as <a href="http://onlinelibrary.wiley.com/doi/10.1002/jrsm.1095/abstract">PET-PEESE</a>.</p>
 					<p>You should be aware, however, that some valid processes can also lead to a correlation between ES and N:
 <ul>
@@ -652,13 +651,13 @@ shinyServer(function(input, output, session) {
 <li>B) Imagine that different underlying effects are combined, and researchers did a proper a-priori power analysis, where they made a good guess about the true ES. Then they will plan larger samples for smaller effects, which will also introduce the correlation.</li>
 </ul>
 
-On the other hand, proper sequential designs (A) are very rare yet (for an introduction to frequentist sequential designs, see <a href="http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2333729">Lakens (2014)</a>; for an introduction to sequential Bayes factors, see <a href="http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2604513">Schönbrodt, Wagenmakers, Zehetleitner, & Perugini (2015)</a>). If different underlying effects are combined (B), we have a large heterogeneity in the meta-analysis, which is a problem for the model.
+On the other hand, proper sequential designs (A) are very rare yet (for an introduction to frequentist sequential designs, see <a href="http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2333729">Lakens, 2014</a>; for an introduction to sequential Bayes factors, see <a href="http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2604513">Schönbrodt, Wagenmakers, Zehetleitner, & Perugini, 2015</a>). If different underlying effects are combined (B), we have a large heterogeneity in the meta-analysis, which is a problem for the model.
 </p>'),
-				pancollapse.create(
-				  "Detailed results for each test statistic",
-				  getTable(ES_table)
-				)
-			))	
+					pancollapse.create(
+					  "Detailed results for each test statistic",
+					  getTable(ES_table)
+					)
+				))	
 		} else {
 			return(NULL)
 		}
@@ -685,9 +684,6 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	     TBL$label <- paste0("Row ", 1:nrow(TBL), ": ", TBL$paper_id, " ", TBL$study_id)
 	     TBL$id <- 1:nrow(TBL)
 	     
-	    
-	     
-	     print('Reactiv Expr: TBL exists')
 	     
 	     TBL %>% 
 	       ggvis(x = ~n.approx, y = ~g.abs) %>%
@@ -699,7 +695,7 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	       add_tooltip(tooltip, "click") 
 
 	   } else {
-	     print('Reactiv Expr: TBL doesnt exist')
+	     #print('Reactiv Expr: TBL doesnt exist')
 	     
 	     # dummy plot
 	     me <- data.frame(x = 1, y = 1)
