@@ -1,0 +1,25 @@
+<h2>Quick Start</h2>
+Enter test statistics in the text field on the left. You can just enter the plain statistics (see the first four lines of the example), or you can add additional information:<br>
+<ul>
+	<li>Everything before a colon is an identifier for the paper. For optimal parsing, it should have the format <code>XXXX (YYYY) ZZ</code>. Everything <i>before</i> the year in parenthesis (i.e., <code>XXXX</code>) is an ID for the paper. Everything <i>after</i> the year is an ID for the study within that paper. Example: <code>AB&amp;C (2013) Study1</code>. Test statistics with the same paper and study ID belong together (this is relevant for the R-Index).
+	</li>
+	<li>By default a critical two-tailed p value of .05 is assumed; for one-tailed tests you can add <code>; one-tailed</code> (or shorter: <code>; 1t</code>) to set the critical p-value to .10
+	</li>
+	<li>You can also directly define the critical p: <code>; crit = .10</code>, for example.
+	</li>
+	<li>You can check whether a p value has been correctly reported when you provide the reported p value, for example <code>p &lt; .05</code>, or <code>p = .037</code>.
+	</li>
+	<li>In general, all options should be written after the test statistic and be separated by semicolons, e.g. <code>A&amp;B (2001) Study1: t(88)=2.1; one-tailed; p &lt; .02</code>.
+	</li>
+</ul><br>
+<br>
+Possible test statistics:
+<ul>
+	<li>t-values: <code>t(45)=3.4</code></li>
+	<li>F-values: <code>F(1, 25)=4.4</code></li>
+	<li>Z-values: <code>Z=2.02</code></li>
+	<li>chi2-values: <code>chi2(1)=2.4</code></li>
+	<li>r-values: <code>r(188)=0.276</code></li>
+</ul>
+<br>
+If two numbers are provided for chi2, the first are the dfs, the second is the sample size (e.g., <code>chi2(1, 326) = 3.8</code>)

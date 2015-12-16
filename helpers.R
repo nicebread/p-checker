@@ -1,6 +1,9 @@
 # ---------------------------------------------------------------------
 # Helper functions
 
+COLORS <- list(
+  BLUE = "#3399f3"
+)
 # Helper: Transform correlation to Fisher's Z
 r2Z <- function(r) {return(0.5 * log((1 + r)/(1 - r)))}
 

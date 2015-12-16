@@ -1,7 +1,11 @@
 
-# History files
+# History & Project Files
 .Rhistory
 .Rapp.history
+.Rproj
+
+# Sandbox directory
+/.sandbox
 
 # Example code in package build process
 *-Ex.R
