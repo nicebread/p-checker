@@ -74,11 +74,14 @@ classWhenValueFun <- function(col.name, value, cls) {
   })
 }
 
-loadHTML <- function(filename) {
-  fileConnection = file(filename, encoding="UTF-8")
+readFile <- function(filename) {
+  fileConnection <- file(filename, encoding="UTF-8")
   text <- readChar(fileConnection, file.info(filename)$size, useBytes = TRUE)
   Encoding(text) <- "UTF-8"
   close(fileConnection)
-  
-  return(HTML(text))
+  text
+}
+
+loadHTML <- function(filename) {
+  HTML(readFile(filename))
 }

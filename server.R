@@ -1,13 +1,12 @@
 library(shiny)
-#library(shinyTable)
 library(stringr)
 library(dplyr)
 library(ggplot2)
 library(ggvis)
 
 # source inference functions
-source("helpers.R")
-source("parser.R")
+source("pancollapse.R")
+source("fasterParser.R")
 source("p-curve.R")
 source("TIVA.R")
 
@@ -57,7 +56,7 @@ shinyServer(function(input, output, session) {
 		  }
 
 		return(list(
-			HTML(paste0('<textarea class="form-control" style="resize:none;white-space:pre;word-wrap:normal;overflow-x:scroll;" id="txt" rows="18">', res, '</textarea>'))
+			HTML(paste0('<textarea class="form-control" style="font-family:Lucida Console, Monaco, monospace !important;resize:none;white-space:pre;word-wrap:normal;overflow-x:scroll;" id="txt" rows="18">', res, '</textarea>'))
 		))
 	 })
 	
@@ -73,7 +72,7 @@ shinyServer(function(input, output, session) {
 			return()
 		}
 		
-		tbl <- parse_ES(input$txt, round_up=input$round_up)
+		tbl <- parse_ES(input$txt, round_up = input$round_up)
 		
 		# parser errors present?
 		if (length(attr(tbl, "warnings")) > 0) {
@@ -83,7 +82,7 @@ shinyServer(function(input, output, session) {
 		}
 		
 		# No input? Return empty data frame
-		if (is.null(tbl) || nrow(tbl) == 0) {
+		if (is.null(tbl) || nrow(tbl) == 0 || dat$warnings != "") {
 			dat$tblDisplay <- data.frame()
 			dat$tbl <- data.frame()
 			return()
@@ -150,10 +149,20 @@ shinyServer(function(input, output, session) {
 	# ---------------------------------------------------------------------
 	# Output for parser errors
 	output$parser_errors <- renderUI({
-			HTML(paste('<p><span style="color:red">',
-						dat$warnings, collapse="<br>"),
-						'</span></p>'
-						)
+	  if(dat$warnings != "") {
+	    alert.create(
+	      paste0(
+	        "<strong>Line ",
+	        dat$warnings[,1],
+	        "</strong> <code>",
+	        dat$warnings[,2],
+	        "</code>",
+	        stri_replace_all_fixed(dat$warnings[,3], "\n", "<br>"), 
+	        collapse="<br>"
+	      ),
+	      style="danger"
+	    )
+	  }
 	})
 
 	# show warning if experimental features are activated
@@ -254,7 +263,7 @@ shinyServer(function(input, output, session) {
 			return(list(
 				pancollapse.create(
 				  "Detailed results for each test statistic",
-				  getTable(rindex_table, function(x){ if(!x[["significant"]]){"danger"} })
+				  getTable(rindex_table, function(x){ if(!is.na(x[["significant"]]) && !x[["significant"]]){"danger"} })
 				)
 			))	
 		}
@@ -798,9 +807,9 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 				updateTextInput(session, inputId = "txt", value = demo2)
 				},
 			"855" = {
-				demo <- readLines(con <- file("demo-data/855_t_tests.txt"))
-				demo2 <- paste(demo, collapse="\n")
-				updateTextInput(session, inputId = "txt", value = demo2)
+				#demo <- readLines(con <- file("demo-data/855_t_tests.txt"))
+				#demo2 <- paste(demo, collapse="\n")
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/855_t_tests.txt"))
 				},
 			"H0_100x5" = {
 				demo <- readLines(con <- file("demo-data/H0_100x5.txt"))
