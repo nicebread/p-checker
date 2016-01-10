@@ -9,7 +9,7 @@ source("pancollapse.R")
 source("fasterParser.R")
 source("p-curve.R")
 source("TIVA.R")
-
+source("helpers.R")
 
 #input <- list(round_up=FALSE, digits=3, group_by_paper=TRUE, only_first_ES=TRUE, txt=x, pcurve_power=33, pcurve_crit=.05, experimental=FALSE); dat <- list()
 

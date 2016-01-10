@@ -246,7 +246,7 @@ parse_ES <- function(txt, round_up = FALSE) {
   if(length(indices_t) > 0)
   {
     BIG[indices_t, P.VALUE] <- pt(BIG[indices_t, STAT], BIG[indices_t, DF1], lower.tail=FALSE) * 2
-    BIG[indices_t, D] <- (2*BIG[indices_t, P.VALUE] / sqrt(BIG[indices_t, DF1])) * BIG[indices_t, SIGN]
+    BIG[indices_t, D] <- (2*BIG[indices_t, STAT] / sqrt(BIG[indices_t, DF1])) * BIG[indices_t, SIGN]
     BIG[indices_t, G] <- BIG[indices_t, D] * ( 1- (3/(4 * BIG[indices_t, DF1] - 1)))
     BIG[indices_t, N.APPROX] <- BIG[indices_t, DF1] + 2
   }
