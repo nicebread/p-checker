@@ -8,6 +8,10 @@ decimals <- function(str) {
   decs
 }
 
+is.one <- function(v) {
+  !is.na(v) & v==1
+}
+
 parse_ES <- function(txt, round_up = FALSE) {
 
   # split into lines
@@ -52,19 +56,27 @@ parse_ES <- function(txt, round_up = FALSE) {
   D               <- 15
   N.APPROX        <- 16
   SIGNIFICANT     <- 17
-  REP.ERROR       <- 18
-  REP.DIRECTION   <- 19
+  P.REPORTED.ERROR  <- 18
+  P.REPORTED.ERROR.DIRECTION   <- 19
   IS.FOCAL        <- 20
   PARSE.ERROR     <- 21
+  D.REPORTED        <- 22
+  D.REPORTED.SIGN   <- 23
+  D.REPORTED.DECS   <- 24
+  D.REPORTED.LOWER  <- 25
+  D.REPORTED.UPPER  <- 26
+  D.REPORTED.ERROR.DIRECTION  <- 27
+  D.REPORTED.ERROR  <- 28
+  REPORTING.ERROR <- 29
 
   # output matrix for all data in numeric form
-  BIG <- matrix(NA, nrow = nlines, ncol = 21)
+  BIG <- matrix(NA, nrow = nlines, ncol = 29)
 
   # find labels and extract them
   extraction <- stri_match_first_regex(txt.lines, '^ *(.*?) *(?:(?<=\\)) *(.+?) *)?: *')
   txt.lines.edited <- txt.lines
   indices_not_na <- which(!is.na(extraction[,1]))
-  if(length(indices_not_na) > 0) {
+  if(length(indices_not_na)) {
     txt.lines.edited[indices_not_na] <- stri_replace_first_fixed(txt.lines.edited[indices_not_na], extraction[indices_not_na,1], '')
   }
 
@@ -79,7 +91,7 @@ parse_ES <- function(txt, round_up = FALSE) {
   indices_study_id <- which(!is.na(extraction[,3]))
 
   # set paper id respectively
-  if(length(indices_paper_id) > 0)
+  if(length(indices_paper_id))
     PAPER_ID[indices_paper_id] <- extraction[indices_paper_id, 2]
 
   if(length(indices_study_id))
@@ -99,7 +111,7 @@ parse_ES <- function(txt, round_up = FALSE) {
   # find statistic and extract it
   extraction <- stri_match_first_regex(txt.lines.edited, ' *\\b(t|chi2|f|r|z)(?: *\\( *((?:\\d*\\.)?\\d+)(?: *, *((?:\\d*\\.)?\\d+))? *\\))? *= *(-?(?:\\d*\\.)?\\d+)[ ,;]*', case_insensitive=TRUE)
   indices_not_na <- which(!is.na(extraction[,1]))
-  if( length(indices_not_na) > 0){
+  if( length(indices_not_na)){
     txt.lines.edited[indices_not_na] <- stri_replace_first_fixed(txt.lines.edited[indices_not_na], extraction[indices_not_na,1], ' ')
   }
 
@@ -124,12 +136,12 @@ parse_ES <- function(txt, round_up = FALSE) {
     decPlaces  <- decimals(extraction[,5])
     BIG[,STAT] <- BIG[,STAT] + BIG[,SIGN] * (4.999 / 10^(decPlaces+1))
   }
-  
+
   # remove sign from value of statistic
   BIG[,STAT] <- abs(BIG[,STAT])
 
-  
-  
+
+
   # vectors of indices for each type
   is_t         <- BIG[,TYPE] == TYPE_T
   is_chi2      <- BIG[,TYPE] == TYPE_CHI2
@@ -148,13 +160,13 @@ parse_ES <- function(txt, round_up = FALSE) {
   extraction <- stri_match_first_regex(txt.lines.edited, ' *\\bp *(<|<=|=|>) *0*((?:\\d*\\.)?\\d+)[ ,;]*', case_insensitive=TRUE)
   p.reported.str <- rep("", nlines)
   indices_not_na <- which(!is.na(extraction[,1]))
-  if( length(indices_not_na) > 0) {
+  if( length(indices_not_na)) {
     p.reported.str[indices_not_na] <- paste0("p ", extraction[indices_not_na,2], " ", extraction[indices_not_na,3])
     txt.lines.edited[indices_not_na] <- stri_replace_first_fixed(txt.lines.edited[indices_not_na], extraction[indices_not_na,1], ' ')
   }
 
-  
-  
+
+
   # store p-value
   BIG[,P.REPORTED] <- as.numeric(extraction[,3])
 
@@ -174,7 +186,7 @@ parse_ES <- function(txt, round_up = FALSE) {
   # find critical value and extract it
   extraction <- stri_match_first_regex(txt.lines.edited, ' *\\bcrit *= *((?:\\d*\\.)?\\d+)[ ,;]*', case_insensitive=TRUE)
   indices_not_na <- which(!is.na(extraction[,1]))
-  if( length(indices_not_na) > 0) {
+  if( length(indices_not_na)) {
     txt.lines.edited[indices_not_na] <- stri_replace_first_fixed(txt.lines.edited[indices_not_na], extraction[indices_not_na,1], ' ')
   }
 
@@ -186,9 +198,74 @@ parse_ES <- function(txt, round_up = FALSE) {
   # store if one-tailed was specified
   BIG[,ONE.TAILED] <- !is.na(extraction[,1])
   indices_one_tailed <- which(BIG[,ONE.TAILED] == 1)
-  if( length(indices_one_tailed) > 0) {
+  if( length(indices_one_tailed)) {
     txt.lines.edited[indices_one_tailed] <- stri_replace_first_fixed(txt.lines.edited[indices_one_tailed], extraction[indices_one_tailed,1], ' ')
   }
+
+  # find Cohen's d with and without CI/SE and extract it
+  extraction <- stri_match_first_regex(txt.lines.edited, ' *\\bd *= *(-)?0*((?:\\d*\\.)?\\d+) *(?:\\[ *(-?(?:\\d*\\.)?\\d+) *[,;] *(-?(?:\\d*\\.)?\\d+) *\\]|[,; ]*se *= *((?:\\d*\\.)?\\d+))?[ ,;]*', case_insensitive=TRUE)
+  indices_cohens_d <- which(!is.na(extraction[,1]))
+  if( length(indices_cohens_d)) {
+    txt.lines.edited[indices_cohens_d] <- stri_replace_first_fixed(txt.lines.edited[indices_cohens_d], extraction[indices_cohens_d,1], ' ')
+  }
+
+  # store Cohen's d and number of decimals
+  BIG[,D.REPORTED] <- as.numeric(extraction[,3])
+  BIG[,D.REPORTED.SIGN] <- ifelse(is.na(extraction[,2]), 1, -1)
+  BIG[,D.REPORTED] <- BIG[,D.REPORTED] * BIG[,D.REPORTED.SIGN]
+
+  BIG[,D.REPORTED.DECS] <- decimals(extraction[,3])
+
+  # has Cohen's d?
+  indices_cohens_d <- which(!is.na(BIG[,D.REPORTED]))
+
+  # save how it was reported
+  d.reported.str <- rep("", nlines)
+  if(length(indices_cohens_d)) {
+    d.reported.str[indices_cohens_d] <- paste0("d = ", extraction[indices_cohens_d, 3])
+  }
+
+  # CI specified for Cohen's d?
+  indices_cohens_d_has_ci <- which(!is.na(extraction[,4]))
+
+  # store Cohen's d upper and lower limits if specified
+  if(length(indices_cohens_d_has_ci)) {
+      BIG[indices_cohens_d_has_ci, D.REPORTED.LOWER] <- as.numeric(extraction[indices_cohens_d_has_ci, 4])
+      BIG[indices_cohens_d_has_ci, D.REPORTED.UPPER] <- as.numeric(extraction[indices_cohens_d_has_ci, 5])
+
+      # check ci
+      indices_cohens_d_ci_not_in_order <- which(BIG[, D.REPORTED.LOWER] > BIG[, D.REPORTED.UPPER])
+      if(length(indices_cohens_d_ci_not_in_order))
+        errors[indices_cohens_d_ci_not_in_order] <- paste0(errors[indices_cohens_d_ci_not_in_order], "\nLower bounds of CI for Cohen's d are greater than upper bounds!")
+
+      indices_cohens_d_ci_not_in_order <- which(BIG[, D.REPORTED.LOWER] > BIG[,D.REPORTED])
+      if(length(indices_cohens_d_ci_not_in_order))
+        errors[indices_cohens_d_ci_not_in_order] <- paste0(errors[indices_cohens_d_ci_not_in_order], "\nLower bounds of CI for Cohen's d are greater than Cohen's d!")
+
+      indices_cohens_d_ci_not_in_order <- which(BIG[, D.REPORTED.UPPER] < BIG[,D.REPORTED])
+      if(length(indices_cohens_d_ci_not_in_order))
+        errors[indices_cohens_d_ci_not_in_order] <- paste0(errors[indices_cohens_d_ci_not_in_order], "\nUpper bounds of CI for Cohen's d are less than Cohen's d!")
+  }
+
+
+  # SE specified for Cohen's d?
+  indices_cohens_d_has_se <- which(!is.na(extraction[,6]))
+
+  # compute Cohen's d upper and lower limits using SE if specified and store them
+  if(length(indices_cohens_d_has_se)) {
+      SE <- as.numeric(extraction[indices_cohens_d_has_se, 6]) * qnorm(0.975)
+      BIG[indices_cohens_d_has_se, D.REPORTED.LOWER] <- BIG[indices_cohens_d_has_se, D.REPORTED] - SE
+      BIG[indices_cohens_d_has_se, D.REPORTED.UPPER] <- BIG[indices_cohens_d_has_se, D.REPORTED] + SE
+  }
+
+  # now switch and change sign of upper and lower limits if Cohens'd is negative
+  indices_cohens_d_neg <- which(BIG[,D.REPORTED] < 0)
+  if(length(indices_cohens_d_neg)) {
+    BIG[indices_cohens_d_neg, c(D.REPORTED.UPPER, D.REPORTED.LOWER)] <- -BIG[indices_cohens_d_neg, c(D.REPORTED.LOWER, D.REPORTED.UPPER)]
+    BIG[indices_cohens_d_neg, D.REPORTED] <- -BIG[indices_cohens_d_neg, D.REPORTED]
+  }
+
+  # make Cohen's d (and positive
 
   # trim rest which couldn't be parsed
   txt.lines.edited <- stri_trim_both(txt.lines.edited)
@@ -203,47 +280,47 @@ parse_ES <- function(txt, round_up = FALSE) {
   BIG[indices_crit_na, CRIT.VALUE] <- ifelse(BIG[indices_crit_na, ONE.TAILED], .10, .05)
 
   indices_df1_missing <- which((is_t | is_chi2) & !has_df1)
-  if(length(indices_df1_missing) > 0)
+  if(length(indices_df1_missing))
     errors[indices_df1_missing] <- paste0(errors[indices_df1_missing], "\nStatistic needs specification of df!")
 
   indices_df2_missing <- which(is_f & !has_df2)
-  if(length(indices_df2_missing) > 0)
+  if(length(indices_df2_missing))
     errors[indices_df2_missing] <- paste0(errors[indices_df2_missing], "\nStatistic needs specification of second df!")
 
   indices_excessive_df2 <- which((is_t | is_r | is_z) & has_df2)
-  if(length(indices_excessive_df2) > 0)
+  if(length(indices_excessive_df2))
     errors[indices_excessive_df2] <- paste0(errors[indices_excessive_df2], "\nStatistic has two dfs but only one df allowed!")
 
   indices_df_zero <- which(BIG[,DF1] == 0 || BIG[,DF2] == 0)
-  if(length(indices_df_zero) > 0)
+  if(length(indices_df_zero))
     errors[indices_df_zero] <- paste0(errors[indices_df_zero], "\nDfs of statistic must be greater than zero!")
 
   indices_df1_real <- which((is_chi2 | is_z | is_r) & (round(BIG[,DF1]) != BIG[,DF1] ))
-  if(length(indices_df1_real) > 0)
+  if(length(indices_df1_real))
     errors[indices_df1_real] <- paste0(errors[indices_df1_real], "\nFirst df of statistic must be an integer value!")
 
   indices_df2_real <- which(is_chi2 & (round(BIG[,DF2]) != BIG[,DF2] ))
-  if(length(indices_df2_real) > 0)
+  if(length(indices_df2_real))
     errors[indices_df2_real] <- paste0(errors[indices_df2_real], "\nSecond df of statistic must be an integer value!")
 
   indices_stat_neg <- which((is_f | is_chi2) & BIG[,SIGN] == -1)
-  if(length(indices_stat_neg) > 0)
+  if(length(indices_stat_neg))
     errors[indices_stat_neg] <- paste0(errors[indices_stat_neg], "\nStatistic must be greater or equal 0!")
 
   indices_stat_out_of_bounds <- which(is_r & BIG[,STAT] > 1)
-  if(length(indices_stat_out_of_bounds) > 0)
+  if(length(indices_stat_out_of_bounds))
     errors[indices_stat_out_of_bounds] <- paste0(errors[indices_stat_out_of_bounds], "\nStatistic must be >= -1 and <= +1!")
 
   indices_p_out_of_bounds <- which(BIG[,P.REPORTED] > 1)
-  if(length(indices_p_out_of_bounds) > 0)
+  if(length(indices_p_out_of_bounds))
     errors[indices_p_out_of_bounds] <- paste0(errors[indices_p_out_of_bounds], "\np-value must be less or equal 1!")
 
   indices_crit_out_of_bounds <- which(BIG[,CRIT.VALUE] > 1)
-  if(length(indices_crit_out_of_bounds) > 0)
+  if(length(indices_crit_out_of_bounds))
     errors[indices_crit_out_of_bounds] <- paste0(errors[indices_crit_out_of_bounds], "\nCritical value must be less or equal 1!")
 
   # compute t-statistic
-  if(length(indices_t) > 0)
+  if(length(indices_t))
   {
     BIG[indices_t, P.VALUE] <- pt(BIG[indices_t, STAT], BIG[indices_t, DF1], lower.tail=FALSE) * 2
     BIG[indices_t, D] <- (2*BIG[indices_t, STAT] / sqrt(BIG[indices_t, DF1])) * BIG[indices_t, SIGN]
@@ -252,7 +329,7 @@ parse_ES <- function(txt, round_up = FALSE) {
   }
 
   # compute pearson's r
-  if(length(indices_r) > 0)
+  if(length(indices_r))
   {
     BIG[indices_r, P.VALUE] <- sqrt(BIG[indices_r, DF1]) * BIG[indices_r, STAT] / sqrt(1 - BIG[indices_r, STAT]^2)
     BIG[indices_r, P.VALUE] <- pt(BIG[indices_r, P.VALUE], BIG[indices_r, DF1], lower.tail=FALSE) * 2
@@ -262,10 +339,10 @@ parse_ES <- function(txt, round_up = FALSE) {
   }
 
   # compute f-statistic
-  if(length(indices_f) > 0)
+  if(length(indices_f))
   {
     indices_f_df1_is_1 <- which(BIG[,TYPE] == 3 & BIG[,DF1] == 1)
-    if(length(indices_f_df1_is_1) > 0)
+    if(length(indices_f_df1_is_1))
     {
       BIG[indices_f_df1_is_1, P.VALUE] <- sqrt(BIG[indices_f_df1_is_1, STAT])
       BIG[indices_f_df1_is_1, D] <- 2 * BIG[indices_f_df1_is_1, P.VALUE] / sqrt(BIG[indices_f_df1_is_1, DF2])
@@ -276,11 +353,11 @@ parse_ES <- function(txt, round_up = FALSE) {
   }
 
   # compute z-value
-  if(length(indices_z) > 0 ) {
+  if(length(indices_z) ) {
     BIG[indices_z, P.VALUE] <- pnorm(BIG[indices_z, STAT], lower.tail=FALSE) * 2
 
     indices_z_df_exists <- which(BIG[, TYPE] == TYPE_Z & !is.na(BIG[, DF1]))
-    if(length(indices_z_df_exists) > 0 ){
+    if(length(indices_z_df_exists) ){
       BIG[indices_z_df_exists, N.APPROX] <- BIG[indices_z_df_exists,DF1]
 
       # If a number is provided for z it's the sample size
@@ -290,13 +367,13 @@ parse_ES <- function(txt, round_up = FALSE) {
   }
 
   # compute chi2-statistic
-  if(length(indices_chi2) > 0){
+  if(length(indices_chi2)){
     # If two numbers are provided for chi2, the first are the dfs, the second is the sample size
     BIG[indices_chi2, P.VALUE] <- pchisq(BIG[indices_chi2, STAT], BIG[indices_chi2, DF1], lower.tail=FALSE)
 
     indices_chi2_with_n <- which(BIG[,TYPE] == TYPE_CHI2 & BIG[,DF1] == 1 & !is.na(BIG[,DF2]))
 
-    if(length(indices_chi2_with_n) > 0) {
+    if(length(indices_chi2_with_n)) {
       BIG[indices_chi2_with_n, N.APPROX] <- BIG[indices_chi2_with_n, DF2]
       BIG[indices_chi2_with_n, D] <- sqrt(BIG[indices_chi2_with_n, STAT] / BIG[indices_chi2_with_n, N.APPROX])
       BIG[indices_chi2_with_n, D] <- 2 * BIG[indices_chi2_with_n, D] * sqrt((BIG[indices_chi2_with_n, N.APPROX] - 1)/(BIG[indices_chi2_with_n, N.APPROX] * (1 - BIG[indices_chi2_with_n, D]^2))) * abs(BIG[indices_chi2_with_n, D])/BIG[indices_chi2_with_n, D]
@@ -316,35 +393,42 @@ parse_ES <- function(txt, round_up = FALSE) {
   BIG[indices_one_tailed, P.ACTUAL] <- BIG[indices_one_tailed, P.VALUE.ONE]
 
   # init error
-  #BIG[, REP.ERROR]     <- rep(0, nlines)
-  #BIG[, REP.DIRECTION] <- rep(0, nlines)
+  #BIG[, P.REPORTED.ERROR]     <- rep(0, nlines)
+  #BIG[, P.REPORTED.ERROR.DIRECTION] <- rep(0, nlines)
 
   # check all "p < ?" specifications for reporting errors
-  if(length(indices_p_lt) > 0){
-    BIG[indices_p_lt, REP.ERROR] <- BIG[indices_p_lt, P.ACTUAL] >= BIG[indices_p_lt, P.REPORTED]
-    BIG[indices_p_lt, REP.DIRECTION] <- -BIG[indices_p_lt, REP.ERROR]
+  if(length(indices_p_lt)){
+    BIG[indices_p_lt, P.REPORTED.ERROR] <- BIG[indices_p_lt, P.ACTUAL] >= BIG[indices_p_lt, P.REPORTED]
+    BIG[indices_p_lt, P.REPORTED.ERROR.DIRECTION] <- -BIG[indices_p_lt, P.REPORTED.ERROR]
   }
 
   # check all "p <= ?" specifications for reporting errors
-  if(length(indices_p_leq) > 0) {
-    BIG[indices_p_leq, REP.ERROR] <- BIG[indices_p_leq, P.ACTUAL] > BIG[indices_p_leq, P.REPORTED]
-    BIG[indices_p_leq, REP.DIRECTION] <- -BIG[indices_p_leq, REP.ERROR]
+  if(length(indices_p_leq)) {
+    BIG[indices_p_leq, P.REPORTED.ERROR] <- BIG[indices_p_leq, P.ACTUAL] > BIG[indices_p_leq, P.REPORTED]
+    BIG[indices_p_leq, P.REPORTED.ERROR.DIRECTION] <- -BIG[indices_p_leq, P.REPORTED.ERROR]
   }
 
   # check all "p > ?" specifications for reporting errors
-  if(length(indices_p_gt) > 0){
-    BIG[indices_p_gt, REP.ERROR] <- BIG[indices_p_gt, P.ACTUAL] <= BIG[indices_p_gt, P.REPORTED]
-    BIG[indices_p_gt, REP.DIRECTION] <- BIG[indices_p_gt, REP.ERROR]
+  if(length(indices_p_gt)){
+    BIG[indices_p_gt, P.REPORTED.ERROR] <- BIG[indices_p_gt, P.ACTUAL] <= BIG[indices_p_gt, P.REPORTED]
+    BIG[indices_p_gt, P.REPORTED.ERROR.DIRECTION] <- BIG[indices_p_gt, P.REPORTED.ERROR]
   }
 
   # check all "p = ?" specifications for reporting errors
-  if(length(indices_p_eq) > 0){
+  if(length(indices_p_eq)){
     difference <- BIG[indices_p_eq, P.REPORTED] - round(BIG[indices_p_eq, P.ACTUAL], BIG[indices_p_eq, P.REPORTED.DECS])
-    BIG[indices_p_eq, REP.DIRECTION] <- sign(difference)
-    BIG[indices_p_eq, REP.ERROR] <- difference != 0
+    BIG[indices_p_eq, P.REPORTED.ERROR.DIRECTION] <- sign(difference)
+    BIG[indices_p_eq, P.REPORTED.ERROR] <- difference != 0
   }
 
-  
+  # check d
+  indices_cohens_d2 <- which(!is.na(BIG[, D]) & !is.na(BIG[, D.REPORTED]))
+  if(length(indices_cohens_d2)) {
+    difference <- BIG[indices_cohens_d2, D.REPORTED] - round(BIG[indices_cohens_d2, D], BIG[indices_cohens_d2, D.REPORTED.DECS])
+    BIG[indices_cohens_d2, D.REPORTED.ERROR.DIRECTION] <- sign(difference)
+    BIG[indices_cohens_d2, D.REPORTED.ERROR] <- difference != 0
+  }
+
   # find indices of lines with and without error
   has_no_error <- stri_isempty(errors)
   indices_no_error <- which(has_no_error)
@@ -352,20 +436,23 @@ parse_ES <- function(txt, round_up = FALSE) {
 
   # produce error message
   warnings <- NULL
-  if(length(indices_error) > 0) {
+  if(length(indices_error)) {
     warnings <- matrix(
       c(
-        as.character(indices_not_empty[indices_error]), 
-        txt.lines[indices_error], 
+        as.character(indices_not_empty[indices_error]),
+        txt.lines[indices_error],
         errors[indices_error]
-      ), 
+      ),
       ncol=3
     )
   }
 
-  
-  error.direction <- c("smaller", "", "", "bigger")[match(BIG[,REP.DIRECTION], c(-1,0,NA,1))]
-  
+
+  p.reported.error.direction <- c("smaller", "", "", "bigger")[match(BIG[,P.REPORTED.ERROR.DIRECTION], c(-1,0,NA,1))]
+  d.reported.error.direction <- c("smaller", "", "", "bigger")[match(BIG[,D.REPORTED.ERROR.DIRECTION], c(-1,0,NA,1))]
+
+  global.reporting.error <- is.one(BIG[,P.REPORTED.ERROR]) | is.one(BIG[,D.REPORTED.ERROR])
+
   # convert data to data.frame as return value
   res <- data.frame(
     line = indices_not_empty,
@@ -383,11 +470,18 @@ parse_ES <- function(txt, round_up = FALSE) {
     p.value.one	= BIG[,P.VALUE.ONE],
     p.reported = p.reported.str,
     p.crit	= BIG[,CRIT.VALUE],
-    significant = as.logical(BIG[, SIGNIFICANT]),
+    significant = as.logical(BIG[,SIGNIFICANT]),
     one.tailed = as.logical(BIG[,ONE.TAILED]),
-    reporting.error = as.logical(BIG[,REP.ERROR]),
-    error.direction = error.direction,
+    reporting.error = as.logical(BIG[,P.REPORTED.ERROR]),
+    error.direction = p.reported.error.direction,
     parse.error = !has_no_error,
+    d.reported = BIG[,D.REPORTED],
+    d.reported.str = d.reported.str,
+    d.reported.lower = BIG[,D.REPORTED.LOWER],
+    d.reported.upper = BIG[,D.REPORTED.UPPER],
+    d.reported.error = as.logical(BIG[,D.REPORTED.ERROR]),
+    d.reported.error.direction = d.reported.error.direction,
+    global.reporting.error = global.reporting.error,
     stringsAsFactors = FALSE
   )
 
