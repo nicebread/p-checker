@@ -54,3 +54,56 @@ decplaces <- function(x) {nchar(str_extract(x, "\\.\\d*$"))-1}
 
 
 clamp <- function(x, MIN=.00001, MAX=.99999) {x[x<MIN] <- MIN; x[x>MAX] <- MAX; x}
+
+logScaleHack <- function(v){
+  isNotPowOf10 <- (log(v, 10) %% 1) != 0
+  v[isNotPowOf10] <- v[isNotPowOf10] + 0.1
+  v
+}
+
+logScaleTicks <- function(v){
+  rv <- range(v)
+  rv <- c(max(1,rv[1]), max(1,rv[2]))
+  exponent <- floor(log(rv, 10))
+  mult <- round(rv / (10^(exponent)))
+  diff <- exponent[2] - exponent[1]
+  if( diff == 0 ){
+    res <- (mult[1]:mult[2])*10^exponent[1]
+  } else if( diff == 1){
+    res <- c((mult[1]:9)*10^exponent[1], (1:mult[2])*10^exponent[2])
+  } else {
+    res <- c(
+      (mult[1]:9)*10^exponent[1],
+      rep(1:9, diff-1) * 10^(rep((exponent[1]+1):(exponent[2]-1), each=9)),
+      (1:mult[2])*10^exponent[2]
+    )
+  }
+  logScaleHack(res)
+}
+
+logScaleLimits <- function(v)
+{
+  rv <- range(v) * c(0.9, 1.1)
+  rv <- c(max(1,rv[1]), max(1,rv[2]))
+
+  exponents <- floor(log(rv, 10))
+  results <- rv / (10^exponents)
+  results <- c(floor(results[1]), ceiling(results[2]))
+  
+  diff <- abs(exponents[2] - exponents[1])
+  if(diff == 0){
+    results <- c(1,10)
+  } else if(diff == 1){
+    if(results[1] == 1){
+      results[2] <- 10
+    } else {
+      if(results[1] > 10 - results[2]){
+        results[2] <- 10
+      } else {
+        results[1] <- 1
+      }
+    }
+  }
+  
+  results * (10^exponents)
+}

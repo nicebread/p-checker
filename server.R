@@ -692,17 +692,17 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	     TBL$g.abs <- abs(TBL$g)
 	     TBL$label <- paste0("Row ", 1:nrow(TBL), ": ", TBL$paper_id, " ", TBL$study_id)
 	     TBL$id <- 1:nrow(TBL)
-	     
-	     
+
+	     x.limits <- logScaleLimits(range(TBL$n.approx, na.rm=TRUE))
+	     x.values <- logScaleTicks(x.limits)
 	     TBL %>% 
 	       ggvis(x = ~n.approx, y = ~g.abs) %>%
 	       layer_points(key := ~id) %>%
 	       layer_model_predictions(model = "lm", se = FALSE, formula=g.abs~log(n.approx), stroke := COLORS$BLUE) %>%
-	       add_axis("x", ticks = 5, values = round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)), grid=TRUE, title="Approximate n (log scale)", format="d") %>%
-	       add_axis("y", title="Absolute Hedge's g") %>% 			  
-	       scale_numeric("x", trans="log") %>%	  			  
+	       add_axis("x", format="d", ticks=length(x.values), values=x.values, grid=TRUE, title="Approximate n (log scale)") %>%
+	       add_axis("y", title="Absolute Hedge's g") %>%
+	       scale_numeric("x", domain=x.limits, trans="log", nice=FALSE, expand=0) %>%
 	       add_tooltip(tooltip, "click") 
-
 	   } else {
 	     #print('Reactiv Expr: TBL doesnt exist')
 	     

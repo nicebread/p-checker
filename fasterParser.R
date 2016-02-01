@@ -358,9 +358,8 @@ parse_ES <- function(txt, round_up = FALSE) {
 
     indices_z_df_exists <- which(BIG[, TYPE] == TYPE_Z & !is.na(BIG[, DF1]))
     if(length(indices_z_df_exists) ){
-      BIG[indices_z_df_exists, N.APPROX] <- BIG[indices_z_df_exists,DF1]
-
       # If a number is provided for z it's the sample size
+      BIG[indices_z_df_exists, N.APPROX] <- BIG[indices_z_df_exists,DF1]  
       BIG[indices_z_df_exists, D] <- (BIG[indices_z_df_exists, STAT] / sqrt(BIG[indices_z_df_exists, N.APPROX])) * BIG[indices_z_df_exists, SIGN]
       BIG[indices_z_df_exists, G] <- BIG[indices_z_df_exists, D] * (1 - (3 / (4 * BIG[indices_z_df_exists, N.APPROX] - 1)))
     }
