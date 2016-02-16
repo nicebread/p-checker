@@ -1,4 +1,5 @@
 library(shiny)
+library(shinyjs)
 library(shinythemes)
 library(shinyBS) # Additional Bootstrap Controls
 library(ggvis)
@@ -6,13 +7,21 @@ library(ggvis)
 # Load the panels with the manual etc.
 source("pancollapse.R")
 
-shinyUI(navbarPage(title="", 
-  
-  tabPanel("p-checker", 
-  	# ---------------------------------------------------------------------
-  	# The actual app ...
-  	HTML("<h2><strong><i>p</i>-checker</strong> The one-for-all <i>p</i>-value analyzer</h2>"),
-  	fluidRow(
+# custom js function to open external URL
+jsCode <- "shinyjs.browseURL = function(URL){window.open(URL, ''); ;}"
+
+shinyUI(tagList(
+	
+	# https://github.com/daattali/shinyjs#using-shinyjs-with-navbarpage-layout
+	useShinyjs(),
+	extendShinyjs(text = jsCode),
+	
+	navbarPage(title="", 
+	tabPanel("p-checker", 
+  		# ---------------------------------------------------------------------
+  		# The actual app ...
+  		HTML("<h2><strong><i>p</i>-checker</strong> The one-for-all <i>p</i>-value analyzer</h2>"),
+  		fluidRow(
   		column(width=4,
   			
   				# the syntax input text field is constructed by ther server.R
@@ -161,4 +170,4 @@ shinyUI(navbarPage(title="",
   header = pancollapse(),
   theme = shinytheme("spacelab"), 
   windowTitle = "One-for-all p-value analyzer"
-))
+)))
