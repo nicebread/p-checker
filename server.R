@@ -1,15 +1,16 @@
 library(shiny)
-#library(shinyTable)
+library(shinyjs)
 library(stringr)
 library(dplyr)
 library(ggplot2)
 library(ggvis)
 
 # source inference functions
-source("helpers.R")
-source("parser.R")
+source("pancollapse.R")
+source("fasterParser.R")
 source("p-curve.R")
 source("TIVA.R")
+source("helpers.R")
 
 
 #input <- list(round_up=FALSE, digits=3, group_by_paper=TRUE, only_first_ES=TRUE, txt=x, pcurve_power=33, pcurve_crit=.05, experimental=FALSE); dat <- list()
@@ -57,7 +58,7 @@ shinyServer(function(input, output, session) {
 		  }
 
 		return(list(
-			HTML(paste0('<textarea class="form-control" style="resize:none;white-space:pre;word-wrap:normal;overflow-x:scroll;" id="txt" rows="18">', res, '</textarea>'))
+			HTML(paste0('<textarea class="form-control" style="font-family:Lucida Console, Monaco, monospace !important;resize:none;white-space:pre;word-wrap:normal;overflow-x:scroll;" id="txt" rows="18">', res, '</textarea>'))
 		))
 	 })
 	
@@ -73,7 +74,7 @@ shinyServer(function(input, output, session) {
 			return()
 		}
 		
-		tbl <- parse_ES(input$txt, round_up=input$round_up)
+		tbl <- parse_ES(input$txt, round_up = input$round_up)
 		
 		# parser errors present?
 		if (length(attr(tbl, "warnings")) > 0) {
@@ -83,7 +84,7 @@ shinyServer(function(input, output, session) {
 		}
 		
 		# No input? Return empty data frame
-		if (is.null(tbl) || nrow(tbl) == 0) {
+		if (is.null(tbl) || nrow(tbl) == 0 || dat$warnings != "") {
 			dat$tblDisplay <- data.frame()
 			dat$tbl <- data.frame()
 			return()
@@ -150,10 +151,20 @@ shinyServer(function(input, output, session) {
 	# ---------------------------------------------------------------------
 	# Output for parser errors
 	output$parser_errors <- renderUI({
-			HTML(paste('<p><span style="color:red">',
-						dat$warnings, collapse="<br>"),
-						'</span></p>'
-						)
+	  if(dat$warnings != "") {
+	    alert.create(
+	      paste0(
+	        "<strong>Line ",
+	        dat$warnings[,1],
+	        "</strong> <code>",
+	        dat$warnings[,2],
+	        "</code>",
+	        stri_replace_all_fixed(dat$warnings[,3], "\n", "<br>"), 
+	        collapse="<br>"
+	      ),
+	      style="danger"
+	    )
+	  }
 	})
 
 	# show warning if experimental features are activated
@@ -254,7 +265,7 @@ shinyServer(function(input, output, session) {
 			return(list(
 				pancollapse.create(
 				  "Detailed results for each test statistic",
-				  getTable(rindex_table, function(x){ if(!x[["significant"]]){"danger"} })
+				  getTable(rindex_table, function(x){ if(!is.na(x[["significant"]]) && !x[["significant"]]){"danger"} })
 				)
 			))	
 		}
@@ -583,11 +594,21 @@ shinyServer(function(input, output, session) {
 	})
 	
 	
-	observeEvent(input$send2pcurve, {
-		res1 <- paste(exportTbl(), collapse="\n")		
-		pcurve_link <- paste0("http://www.p-curve.com/app3/?tests=", URLencode(res1, reserved=TRUE))
-		browseURL(pcurve_link)
-	})
+	# observeEvent(input$send2pcurve, {
+	# 	print("send to p-curve!")
+	# 	res1 <- paste(exportTbl(), collapse="\n")
+	# 	pcurve_link <- paste0("http://www.p-curve.com/app4/?tests=", URLencode(res1, reserved=TRUE))
+	#
+	#
+	# 	#browseURL(pcurve_link)
+	# })
+	
+	shinyjs::onclick("send2pcurve", {
+		res1 <- paste(exportTbl(), collapse="\n")
+		pcurve_link <- paste0("http://www.p-curve.com/app4/?tests=", URLencode(res1, reserved=TRUE))
+		js$browseURL(pcurve_link)
+		print("js: send to p-curve!")
+    })
 	
 	# ---------------------------------------------------------------------
 	# Effect size panel	
@@ -649,6 +670,7 @@ shinyServer(function(input, output, session) {
 <ul>
 <li>A) If (proper) sequential analyses are employed, trials with (randomly) lower sample effect sizes will take longer to stop. This process will also induce the correlation.</li>
 <li>B) Imagine that different underlying effects are combined, and researchers did a proper a-priori power analysis, where they made a good guess about the true ES. Then they will plan larger samples for smaller effects, which will also introduce the correlation.</li>
+<li>C) If more effective manipulations are more costly, one can expect larger effects from smaller samples.</li>
 </ul>
 
 On the other hand, proper sequential designs (A) are very rare yet (for an introduction to frequentist sequential designs, see <a href="http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2333729">Lakens, 2014</a>; for an introduction to sequential Bayes factors, see <a href="http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2604513">Schönbrodt, Wagenmakers, Zehetleitner, & Perugini, 2015</a>). If different underlying effects are combined (B), we have a large heterogeneity in the meta-analysis, which is a problem for the model.
@@ -683,17 +705,17 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	     TBL$g.abs <- abs(TBL$g)
 	     TBL$label <- paste0("Row ", 1:nrow(TBL), ": ", TBL$paper_id, " ", TBL$study_id)
 	     TBL$id <- 1:nrow(TBL)
-	     
-	     
+
+	     x.limits <- logScaleLimits(range(TBL$n.approx, na.rm=TRUE))
+	     x.values <- logScaleTicks(x.limits)
 	     TBL %>% 
 	       ggvis(x = ~n.approx, y = ~g.abs) %>%
 	       layer_points(key := ~id) %>%
 	       layer_model_predictions(model = "lm", se = FALSE, formula=g.abs~log(n.approx), stroke := COLORS$BLUE) %>%
-	       add_axis("x", ticks = 5, values = round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)), grid=TRUE, title="Approximate n (log scale)", format="d") %>%
-	       add_axis("y", title="Absolute Hedge's g") %>% 			  
-	       scale_numeric("x", trans="log") %>%	  			  
+	       add_axis("x", format="d", ticks=length(x.values), values=x.values, grid=TRUE, title="Approximate n (log scale)") %>%
+	       add_axis("y", title="Absolute Hedge's g") %>%
+	       scale_numeric("x", domain=x.limits, trans="log", nice=FALSE, expand=0) %>%
 	       add_tooltip(tooltip, "click") 
-
 	   } else {
 	     #print('Reactiv Expr: TBL doesnt exist')
 	     
@@ -798,9 +820,9 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 				updateTextInput(session, inputId = "txt", value = demo2)
 				},
 			"855" = {
-				demo <- readLines(con <- file("demo-data/855_t_tests.txt"))
-				demo2 <- paste(demo, collapse="\n")
-				updateTextInput(session, inputId = "txt", value = demo2)
+				#demo <- readLines(con <- file("demo-data/855_t_tests.txt"))
+				#demo2 <- paste(demo, collapse="\n")
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/855_t_tests.txt"))
 				},
 			"H0_100x5" = {
 				demo <- readLines(con <- file("demo-data/H0_100x5.txt"))

@@ -38,21 +38,21 @@ critical <em>p</em> value; [optional, if one-tailed testing] one-tailed
 </ul></li>
 </ul>
 
+<h3 id="sign">Sign of effects</h3>
+You can provide the sign of a test statistic (e.g., <code>t(123) = -2.8</code>). This, however, is ignored in all analyses which are currently available. R-index, TIVA, and <em>p</em>-curve only use the <em>p</em>-values and ignore the sign. The effect size tab also ignores the sign by taking the absolut effect size estimate. <br>
+Hence, by now it is implicitly assumed that all effects go into the predicted direction. If you use <em>p</em>-checker as a "pre-processing" tool for a proper meta-analysis, you should be aware of that.
+
+
 <h3 id="special_cases">Special cases</h3>
 
 <ul>
-<li>Only significant values are included in R-Index analyses. But sometimes marginally non-significant p values (e.g., p = .051) are falsely rounded downwards and cross the critical boundary only due to this error (i.e., they are reported as &#8220;p &lt; .05)&#8221;). In this case, the ES is not included in the analysis (see column &#8220;significant&#8221; in the R-Index tab). But, if the ES has been (falsely) interpreted as significant, the critical value must be slightly increased, so that the ES is also included in the R-Index analysis. In this case, increase the critical level to <code>crit = .055</code>.</li>
+<li>Significant studies are used to determine the success rate in the R-index analyses. But sometimes marginally non-significant <em>p</em> values (e.g., <em>p</em> = .051) are falsely rounded downwards and cross the critical boundary only due to this error (i.e., they are reported as &#8220;p &lt; .05)&#8221;). In this case, the ES does not count for a "success" (see column &#8220;significant&#8221; in the R-Index tab), as the actual <em>p</em>-value is not significant. But, if the ES has been (falsely) interpreted as significant by the original authors, the critical value can be slightly increased, so that the ES is also counted as a success in the R-Index analysis. In this case, increase the critical level to <code>crit = .055</code> for example. This decision (whether "near significant" studies, that are falsely interpreted as significant, should be included as "successes" in the R-index analysis) should be made a priori.
+</li>
 </ul>
 
 <h3>Reproducible Analyses</h3>
 
-<ul>
-<li>You can provide the test statistics also in the link to this app. Copy your input text to the upper box of this <a href="http://www.freeformatter.com/url-encoder.html#ad-output">URL Encoder</a>. In the lower box, you will find a weird-looking string, such as <code>t%2847%29%3D2.1%0D%0Ar%2834%29%3D0.123%0D%0AF%281%2C+200%29%3D9.9</code>. Now you can provide that string after the link to this app, for example:<br>
-<code>http://shinyapps.org/apps/p-checker/?syntax=t%2847%29%3D2.1%0D%0Ar%2834%29%3D0.123%0D%0AF%281%2C+200%29%3D9.9</code><br>
-This way you can share any p-value analysis in a single link!
+<!-- You can provide the test statistics also in the link to this app. Copy your input text to the upper box of this <a href="http://www.freeformatter.com/url-encoder.html#ad-output">URL Encoder</a>. In the lower box, you will find a weird-looking string, such as <code>t%2847%29%3D2.1%0D%0Ar%2834%29%3D0.123%0D%0AF%281%2C+200%29%3D9.9</code>. Now you can provide that string after the link to this app, for example:<br>
+<code>http://shinyapps.org/apps/p-checker/?syntax=t%2847%29%3D2.1%0D%0Ar%2834%29%3D0.123%0D%0AF%281%2C+200%29%3D9.9</code><br> -->
 
-Or, even easier: Go to the "Export" tab and copy the link for a reproducible analysis!
-
-</li>
-
-</ul>
+Go to the "Export" tab and copy the link for a reproducible analysis. This way you can share any p-value analysis in a single link!
