@@ -475,8 +475,8 @@ shinyServer(function(input, output, session) {
 		return(list(
 			renderPlot({
 				plot(NA, xlim=c(0, input$pcurve_crit), ylim=c(0, 100), xlab="p-value", ylab="Percentage of p values")
-				abline(h=1/input$pcurve_crit, col="red", lty="dashed")
-				legend("topright", lty=c("solid", "dotted", "dashed"), col=c(COLORS$BLUE, "darkgreen", "red"), legend=c("Observed p-curve", "Null of 33% power", "Null of nil effect"))
+				abline(h=1/input$pcurve_crit, col="red", lty="dashed", lwd=2)
+				legend("topright", lty=c("solid", "dotted", "dashed"), col=c(COLORS$BLUE, "darkgreen", "red"), legend=c("Observed p-curve", paste0(input$pcurve_power, "% power curve"), "Nil effect"), bty="n")
 		
 				# select only focal and significant hypothesis tests
 				tbl <- dat$tbl[dat$tbl$focal==TRUE & dat$tbl$significant==TRUE, ]
@@ -487,9 +487,15 @@ shinyServer(function(input, output, session) {
 		
 				bins <- table(cut(tbl$p.value, breaks=seq(0, input$pcurve_crit, by=.01)))
 				perc <- (bins/sum(bins))*100
-				lines(x=seq(0, input$pcurve_crit-.01, by=.01)+.005, y=perc, col=COLORS$BLUE)
-				text(x=seq(0, input$pcurve_crit-.01, by=.01)+.007, y=perc + 5, col=COLORS$BLUE, label=paste0(round(perc), "%"))
-			}),
+				
+				# empirical p-curve
+				lines(x=seq(0, input$pcurve_crit-.01, by=.01)+.005, y=perc, col=COLORS$BLUE, lwd=2)
+				
+				# 33% (or any other) power curve
+				lines(x=seq(0, input$pcurve_crit-.01, by=.01)+.005, y=theoretical_power_curve(input$pcurve_power/100, p.max=input$pcurve_crit)*100, col=COLORS$GREEN, lty="dashed", lwd=2)
+				
+				text(x=seq(0, input$pcurve_crit-.01, by=.01)+.006, y=perc + 8, col="black", label=paste0(round(perc), "%"), cex=)
+			}, res=100),
 			send2pcurve.button.tag,
 			HTML(paste0("<br><small>Note: This transfers the test statistics without paper identifier. That means, p-curve.com will compute an omnibus test with all values.</small><br>",
 		"<small>Note: If you want identical results to p-curve.com, turn off the 'Gracious rounding up' option at the left panel.</small><br><br>
@@ -593,21 +599,12 @@ shinyServer(function(input, output, session) {
 		}
 	})
 	
-	
-	# observeEvent(input$send2pcurve, {
-	# 	print("send to p-curve!")
-	# 	res1 <- paste(exportTbl(), collapse="\n")
-	# 	pcurve_link <- paste0("http://www.p-curve.com/app4/?tests=", URLencode(res1, reserved=TRUE))
-	#
-	#
-	# 	#browseURL(pcurve_link)
-	# })
+
 	
 	shinyjs::onclick("send2pcurve", {
 		res1 <- paste(exportTbl(), collapse="\n")
 		pcurve_link <- paste0("http://www.p-curve.com/app4/?tests=", URLencode(res1, reserved=TRUE))
 		js$browseURL(pcurve_link)
-		print("js: send to p-curve!")
     })
 	
 	# ---------------------------------------------------------------------
@@ -665,7 +662,7 @@ shinyServer(function(input, output, session) {
 			return(list(
 				HTML(paste0("<h4>Rank correlation of effect size vs. sample size (Begg & Mazumdar's (1994) test for publication bias):</h4><h4>Kendall's <i>tau</i> = ", round(Begg$estimate, 2), " (", p(Begg$p.value), ")</h4>")),
 				HTML("<p>A significant negative rank correlation indicates publication bias. The test has a good Type I error control (i.e., it only gives false alarms of publication bias around the nominal 5% level) but relatively low power to detect actual publication bias.</p>"),
-					HTML('<p>In a set of studies with a fixed-<i>n</i> design and the same underlying effect, sample size should be unrelated to the estimated effect size (ES). A negative correlation between sample size and ES typically is seen as an indicator of publication bias and/or <i>p</i>-hacking. This bias is attempted to be corrected by meta-analytic techniques such as <a href="http://onlinelibrary.wiley.com/doi/10.1002/jrsm.1095/abstract">PET-PEESE</a>.</p>
+					HTML('<p>In a set of studies with a fixed-<i>n</i> design and the same underlying effect, sample size should be unrelated to the estimated effect size (ES). A negative correlation between sample size and ES typically is seen as an indicator of publication bias and/or <i>p</i>-hacking. This bias is attempted to be corrected by meta-regression techniques such as <a href="http://onlinelibrary.wiley.com/doi/10.1002/jrsm.1095/abstract">PET-PEESE</a>.</p>
 					<p>You should be aware, however, that some valid processes can also lead to a correlation between ES and N:
 <ul>
 <li>A) If (proper) sequential analyses are employed, trials with (randomly) lower sample effect sizes will take longer to stop. This process will also induce the correlation.</li>

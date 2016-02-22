@@ -45,7 +45,8 @@ shinyUI(tagList(
   					selectInput('pcurve_version','p-curve Version:', c(
   						"Version 2 (chi2 test)"="v2",
   						"Version 3 (Z test) - recommended"="v3"
-  					), selected="v3")
+  					), selected="v3"),
+					sliderInput("pcurve_power", "Power (default = 33%)", min=1, max=99, value=33, step=1)
   				),
   				
   				conditionalPanel(
@@ -59,8 +60,7 @@ shinyUI(tagList(
   				
   				conditionalPanel(
   					condition = "input.tabs1 == 'p-Curve' & input.experimental == 1",
-  					sliderInput("pcurve_crit", "Critical p value (EXPERIMENTAL! Only intended for exploration, not for actual p-curve analyses! Default = .05)", min=.01, max=.10, value=.05, step=.01),
-  					sliderInput("pcurve_power", "Power (EXPERIMENTAL! Default = 33%)", min=15, max=90, value=33, step=1)
+  					sliderInput("pcurve_crit", "Critical p value (EXPERIMENTAL! Only intended for exploration, not for actual p-curve analyses! Default = .05)", min=.01, max=.10, value=.05, step=.01)  					
   				),
   				
   				conditionalPanel(
