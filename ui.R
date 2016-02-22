@@ -46,7 +46,7 @@ shinyUI(tagList(
   						"Version 2 (chi2 test)"="v2",
   						"Version 3 (Z test) - recommended"="v3"
   					), selected="v3"),
-					sliderInput("pcurve_power", "Power (default = 33%)", min=1, max=99, value=33, step=1)
+					sliderInput("pcurve_power", "Comparison power (default = 33%)", min=10, max=99, value=33, step=1)
   				),
   				
   				conditionalPanel(

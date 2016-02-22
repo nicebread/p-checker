@@ -124,7 +124,7 @@ shinyServer(function(input, output, session) {
 		# ---------------------------------------------------------------------
 		# p-curve computations
 		
-		dat$pcurve_power <- ifelse(input$experimental==TRUE, input$pcurve_power/100, 1/3)
+		dat$pcurve_power <- input$pcurve_power/100
 		pps <- get_pp_values(type=tbl$type, statistic=tbl$statistic, df=tbl$df1, df2=tbl$df2, p.crit=input$pcurve_crit, power=dat$pcurve_power)$res
 		
 		tbl <- cbind(tbl, pps[, -1])
