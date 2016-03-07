@@ -14,6 +14,10 @@ is.one <- function(v) {
 
 parse_ES <- function(txt, round_up = FALSE) {
 
+  if(is.null(txt) || nchar(txt) == 0) {
+    return(NULL)
+  }
+  
   # split into lines
   txt.lines <- stri_split_lines(txt)[[1]]
 
@@ -35,6 +39,10 @@ parse_ES <- function(txt, round_up = FALSE) {
   # number of (non-empty) lines
   nlines <- length(txt.lines)
 
+  if(nlines == 0) {
+    return(NULL)
+  }
+  
   # allocate space for error messages
   errors <- rep("", nlines)
 
