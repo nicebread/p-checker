@@ -123,6 +123,11 @@ parse_ES <- function(txt, round_up = FALSE) {
     txt.lines.edited[indices_not_na] <- stri_replace_first_fixed(txt.lines.edited[indices_not_na], extraction[indices_not_na,1], ' ')
   }
 
+  # mark lines without statistic as error
+  indices_no_statistic = which(is.na(extraction[,1]))
+  if( length(indices_no_statistic) )
+    errors[indices_no_statistic] <- paste0(errors[indices_no_statistic], "\nNo statistic given!")
+  
   # store numeric representation for type of statistic
   type.factor <- factor(stri_trans_tolower(extraction[,2]), TYPESTRINGS)
   BIG[,TYPE] <- unclass(type.factor)
@@ -436,6 +441,7 @@ parse_ES <- function(txt, round_up = FALSE) {
     BIG[indices_cohens_d2, D.REPORTED.ERROR] <- difference != 0
   }
 
+ 
   # find indices of lines with and without error
   has_no_error <- stri_isempty(errors)
   indices_no_error <- which(has_no_error)
