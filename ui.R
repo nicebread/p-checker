@@ -103,7 +103,7 @@ shinyUI(tagList(
 			HTML('
 			<div class="alert alert-success alert-dismissible" role="alert">
 			  <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-			  <strong>New feature:</strong> You can now enter <i>p</i>-values directly (e.g. <code>p=0.021</code>). If you provide <i>df</i> in addition (e.g. <code>p(48)=.03</code>), the <i>p</i>-value is also converted into an effect size.
+			  <strong>New feature:</strong> You can now enter <i>p</i>-values directly (e.g. <code>p=0.021</code>). If you provide the sample size in addition (e.g. <code>p(48)=.03</code>), the <i>p</i>-value is also converted into an effect size.
 			</div>
 			'),
 			

@@ -617,7 +617,7 @@ shinyServer(function(input, output, session) {
 		
 		TBL <- dat$tbl %>% filter(!is.na(g))
 		
-		if (nrow(TBL) > 0) {
+		if (nrow(TBL) > 1) {
 			
 		  isolate({
 			TBL$g.abs <- abs(TBL$g)
@@ -682,7 +682,9 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 					)
 				))	
 		} else {
-			return(NULL)
+			return(list(
+				HTML("<h4>Too few effect sizes for plotting!</h4><br>Enter >= 2 effect sizes.")
+			))
 		}
 	})
 	
@@ -702,7 +704,7 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	reactive({
 	  TBL <- dat$tbl %>% filter(!is.na(g))
 	        
-	   if (nrow(TBL) > 0) {  
+	   if (nrow(TBL) > 1) {  
 	     TBL$g.abs <- abs(TBL$g)
 	     TBL$label <- paste0("Row ", 1:nrow(TBL), ": ", TBL$paper_id, " ", TBL$study_id)
 	     TBL$id <- 1:nrow(TBL)
@@ -718,13 +720,14 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	       scale_numeric("x", domain=x.limits, trans="log", nice=FALSE, expand=0) %>%
 	       add_tooltip(tooltip, "click") 
 	   } else {
-	     #print('Reactiv Expr: TBL doesnt exist')
+	     print('Reactiv Expr: TBL doesnt exist')
 	     
 	     # dummy plot
 	     me <- data.frame(x = 1, y = 1)
-	     me %>% 
-	       ggvis(x = ~x, y = ~y) %>%	  
-	       add_tooltip(tooltip, "click") 
+	     me %>%
+	       ggvis(x = ~x, y = ~y) %>%
+	       add_tooltip(tooltip, "click")
+
 	   }
 	}) %>% bind_shiny("ES_plot")
 	
