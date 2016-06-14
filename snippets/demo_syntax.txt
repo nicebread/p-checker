@@ -1,9 +1,11 @@
 # GO AND REPLACE THE EXAMPLES!			  
 # Easy mode ('#' starts a comment)
 t(47) = 2.1
-chi2(1) = 9.1
+chi2(1) = 9.15
 r(77) = .47
 F(1, 88) = 9.21
+p = .02
+p(48) = .018
 
 # add reported p-value; one-tailed; alpha level
 t(123) = 2.54; p < .01

@@ -333,6 +333,7 @@ shinyServer(function(input, output, session) {
 			)
 			
 			dat$rindex <- rindex
+			rindex[, -1] <- round(rindex[, -1], input$digits)
 			
 			return(list(
 				HTML("<h3>R-Index analysis:</h3>"),				
@@ -345,8 +346,9 @@ shinyServer(function(input, output, session) {
 					"</h4>"
 				)),
 				#renderTable({rindex})
+				
 				pancollapse.create(
-				  "Detailed results for each test statistic",
+				  "R-index results for each paper",
 				  getTable(rindex)
 				)
 			))
@@ -568,6 +570,7 @@ shinyServer(function(input, output, session) {
 			pcurve <- pcurve %>% filter(!is.na(Z_evidence))
 			
 			dat$pcurve <- pcurve
+			pcurve[, -c(1, 8)] <- round(pcurve[, -c(1, 8)], input$digits)
 
 			return(list(
 				HTML(paste0(
@@ -592,7 +595,7 @@ shinyServer(function(input, output, session) {
 				
 				
 				pancollapse.create(
-				  "Detailed results for each test statistic",
+				  "p-curve results for each paper",
 				  getTable(pcurve)
 				)
 			))

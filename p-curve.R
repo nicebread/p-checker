@@ -10,12 +10,22 @@
 
 #t-test
 ncp33t <- function(df, power=1/3, p.crit=.05) {      
-      xc=qt(p=1-p.crit/2, df=df)
+      xc = qt(p=1-p.crit/2, df=df)
       #Find noncentrality parameter (ncp) that leads 33% power to obtain xc
 	  f = function(delta, pr, x, df) pt(x, df = df, ncp = delta) - (1-power)
 	  out = uniroot(f, c(0, 37.62), x = xc, df = df)  
 	  return(out$root) 
 }
+
+
+ncp33z <- function(power=1/3, p.crit=.05) {      
+      xc = qnorm(p=1-p.crit/2)
+      #Find noncentrality parameter (ncp) that leads 33% power to obtain xc
+	  f = function(delta, pr, x) pnorm(x, mean = delta) - (1-power)
+	  out = uniroot(f, c(0, 37.62), x = xc)
+	  return(out$root) 
+}
+
 
 #F-test
 ncp33f <- function(df1, df2, power=1/3, p.crit=.05) {      
@@ -35,6 +45,10 @@ ncp33chi <- function(df, power=1/3, p.crit=.05) {
 }
 
 
+type=c("t", "p")
+statistic=c(2.5, 0.01588969)
+df=c(48, NA)
+df2=c(NA, NA)
 
 
 get_pp_values <- function(type, statistic, df, df2, p.crit=.05, power=1/3) {
@@ -69,16 +83,28 @@ get_pp_values <- function(type, statistic, df, df2, p.crit=.05, power=1/3) {
 				ppr <- p*(1/p.crit)	# pp-value for right-skew 
 				ppl <- 1-ppr		# pp-value for left-skew
 				
-				# TODO: Adjust 1.5285687 for different power and p.crit!
-				ncp33 <- 1.5285687				
-	  	        pp33 <- (pnorm(statistic[i], mean=ncp33, sd=1)-(1-power))*(1/power)   # Compute pp33-values using the 'ncp' 1.5285687 which gives the normal 33% power
+				ncp33 <- ncp33z(power=power, p.crit=p.crit)
+	  	        pp33 <- (pnorm(statistic[i], mean=ncp33, sd=1)-(1-power))*(1/power)
 				},	
+			"p" = {
+				p <- statistic[i]
+				z <- qnorm(p/2, lower.tail=FALSE)
+				ppr <- p*(1/p.crit)	# pp-value for right-skew 
+				ppl <- 1-ppr		# pp-value for left-skew
+			
+				ncp33 <- ncp33z(power=power, p.crit=p.crit)
+	  	        pp33 <- (pnorm(z, mean=ncp33, sd=1)-(1-power))*(1/power)
+				},		
 			"chi2" = {
 				p <- 1-pchisq(abs(statistic[i]), df=df[i])
 				ppr <- p*(1/p.crit)	# pp-value for right-skew 
 				ppl <- 1-ppr		# pp-value for left-skew
 	  	        ncp33 <- ncp33chi(df[i], power=power, p.crit=p.crit)
 	  	        pp33 <- (pchisq(statistic[i],  df=df[i], ncp=ncp33)-(1-power))*(1/power)
+			},
+			{
+				# default
+				warning(paste0("Test statistic ", type[i], " not suported by p-curve."))
 			}
 		)
 		res <- rbind(res, data.frame(p=p, ppr=ppr, ppl=ppl, pp33=pp33))
