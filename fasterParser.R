@@ -1,6 +1,8 @@
 library(stringi)
 library(dplyr)
 
+# returns the reported precision (i.e., number of decimals) from a string
+# e.g. decimals("0.120") == 3
 decimals <- function(str) {
   locations <- stri_locate_first_fixed(str, '.')[,1]
   decs <- nchar(str) - locations
@@ -12,6 +14,8 @@ is.one <- function(v) {
   !is.na(v) & v==1
 }
 
+
+# parses a multiline string
 parse_ES <- function(txt, round_up = FALSE) {
 
   if(is.null(txt) || nchar(txt) == 0) {
@@ -80,7 +84,7 @@ parse_ES <- function(txt, round_up = FALSE) {
   # output matrix for all data in numeric form
   BIG <- matrix(NA, nrow = nlines, ncol = 29)
 
-  # find labels and extract them
+  # find study labels and extract them (everything before ":")
   extraction <- stri_match_first_regex(txt.lines, '^ *(.*?) *(?:(?<=\\)) *(.+?) *)?: *')
   txt.lines.edited <- txt.lines
   indices_not_na <- which(!is.na(extraction[,1]))
@@ -105,7 +109,7 @@ parse_ES <- function(txt, round_up = FALSE) {
   if(length(indices_study_id))
     STUDY_ID[indices_study_id] <- extraction[indices_study_id, 3]
 
-  # is study focal? indicated by underscore at start of id
+  # is study focal? Underscore at start of id indicates a non-focal test statistic
   BIG[,IS.FOCAL] <- ( stri_sub(PAPER_ID, 1, 1) != "_" )
 
   # definition of statistic types and typestrings array
@@ -114,18 +118,19 @@ parse_ES <- function(txt, round_up = FALSE) {
   TYPE_F <- 3
   TYPE_R <- 4
   TYPE_Z <- 5
-  TYPESTRINGS <- c('t','chi2','f','r','z')
+  TYPE_P <- 6
+  TYPESTRINGS <- c('t','chi2','f','r','z', 'p')
 
   # find statistic and extract it
-  extraction <- stri_match_first_regex(txt.lines.edited, ' *\\b(t|chi2|f|r|z)(?: *\\( *((?:\\d*\\.)?\\d+)(?: *, *((?:\\d*\\.)?\\d+))? *\\))? *= *(-?(?:\\d*\\.)?\\d+)[ ,;]*', case_insensitive=TRUE)
+  extraction <- stri_match_first_regex(txt.lines.edited, ' *\\b(t|chi2|f|r|z|p)(?: *\\( *((?:\\d*\\.)?\\d+)(?: *, *((?:\\d*\\.)?\\d+))? *\\))? *= *(-?(?:\\d*\\.)?\\d+)[ ,;]*', case_insensitive=TRUE)
   indices_not_na <- which(!is.na(extraction[,1]))
   if( length(indices_not_na)){
     txt.lines.edited[indices_not_na] <- stri_replace_first_fixed(txt.lines.edited[indices_not_na], extraction[indices_not_na,1], ' ')
   }
 
   # mark lines without statistic as error
-  indices_no_statistic = which(is.na(extraction[,1]))
-  if( length(indices_no_statistic) )
+  indices_no_statistic <- which(is.na(extraction[,1]))
+  if (length(indices_no_statistic) > 0)
     errors[indices_no_statistic] <- paste0(errors[indices_no_statistic], "\nNo statistic given!")
   
   # store numeric representation for type of statistic
@@ -145,7 +150,7 @@ parse_ES <- function(txt, round_up = FALSE) {
   BIG[,SIGN] <- sign(BIG[,STAT])
 
   # round statistic if necessary
-  if (round_up) {
+  if (round_up == TRUE) {
     decPlaces  <- decimals(extraction[,5])
     BIG[,STAT] <- BIG[,STAT] + BIG[,SIGN] * (4.999 / 10^(decPlaces+1))
   }
@@ -161,6 +166,7 @@ parse_ES <- function(txt, round_up = FALSE) {
   is_f         <- BIG[,TYPE] == TYPE_F
   is_r         <- BIG[,TYPE] == TYPE_R
   is_z         <- BIG[,TYPE] == TYPE_Z
+  is_p         <- BIG[,TYPE] == TYPE_P
   has_df1      <- !is.na(BIG[,DF1])
   has_df2      <- !is.na(BIG[,DF2])
   indices_t    <- which(is_t)
@@ -168,8 +174,10 @@ parse_ES <- function(txt, round_up = FALSE) {
   indices_f    <- which(is_f)
   indices_r    <- which(is_r)
   indices_z    <- which(is_z)
+  indices_pdirect <- which(is_p)
 
   # find p-value and extract it
+  # (if the p-value is given as test statistic)
   extraction <- stri_match_first_regex(txt.lines.edited, ' *\\bp *(<|<=|=|>) *0*((?:\\d*\\.)?\\d+)[ ,;]*', case_insensitive=TRUE)
   p.reported.str <- rep("", nlines)
   indices_not_na <- which(!is.na(extraction[,1]))
@@ -292,7 +300,9 @@ parse_ES <- function(txt, round_up = FALSE) {
   indices_crit_na <- which(is.na(BIG[, CRIT.VALUE]))
   BIG[indices_crit_na, CRIT.VALUE] <- ifelse(BIG[indices_crit_na, ONE.TAILED], .10, .05)
 
-  indices_df1_missing <- which((is_t | is_chi2) & !has_df1)
+
+  # error detection / define error messages
+  indices_df1_missing <- which((is_t | is_chi2 | is_r) & !has_df1)
   if(length(indices_df1_missing))
     errors[indices_df1_missing] <- paste0(errors[indices_df1_missing], "\nStatistic needs specification of df!")
 
@@ -319,7 +329,11 @@ parse_ES <- function(txt, round_up = FALSE) {
   indices_stat_neg <- which((is_f | is_chi2) & BIG[,SIGN] == -1)
   if(length(indices_stat_neg))
     errors[indices_stat_neg] <- paste0(errors[indices_stat_neg], "\nStatistic must be greater or equal 0!")
-
+  
+  indices_p_outofrange <- which(is_p & (BIG[ ,STAT] > 1 | BIG[,SIGN] == -1))
+  if(length(indices_p_outofrange))
+    errors[indices_p_outofrange] <- paste0(errors[indices_p_outofrange], "\np-values must be between 0 and 1!")
+  
   indices_stat_out_of_bounds <- which(is_r & BIG[,STAT] > 1)
   if(length(indices_stat_out_of_bounds))
     errors[indices_stat_out_of_bounds] <- paste0(errors[indices_stat_out_of_bounds], "\nStatistic must be >= -1 and <= +1!")
@@ -331,6 +345,7 @@ parse_ES <- function(txt, round_up = FALSE) {
   indices_crit_out_of_bounds <- which(BIG[,CRIT.VALUE] > 1)
   if(length(indices_crit_out_of_bounds))
     errors[indices_crit_out_of_bounds] <- paste0(errors[indices_crit_out_of_bounds], "\nCritical value must be less or equal 1!")
+
 
   # compute t-statistic
   if(length(indices_t))
@@ -390,6 +405,23 @@ parse_ES <- function(txt, round_up = FALSE) {
       BIG[indices_chi2_with_n, D] <- sqrt(BIG[indices_chi2_with_n, STAT] / BIG[indices_chi2_with_n, N.APPROX])
       BIG[indices_chi2_with_n, D] <- 2 * BIG[indices_chi2_with_n, D] * sqrt((BIG[indices_chi2_with_n, N.APPROX] - 1)/(BIG[indices_chi2_with_n, N.APPROX] * (1 - BIG[indices_chi2_with_n, D]^2))) * abs(BIG[indices_chi2_with_n, D])/BIG[indices_chi2_with_n, D]
       BIG[indices_chi2_with_n, G] <- BIG[indices_chi2_with_n, D] * (1 - (3/(4 * (BIG[indices_chi2_with_n, N.APPROX]-2) - 1)))
+    }
+  }
+  
+  # compute directly entered p-value
+  if(length(indices_pdirect) ) {
+	# assume that the directly reported p-value is the correct p-value
+    BIG[indices_pdirect, P.VALUE] <- BIG[indices_pdirect, STAT]
+
+	indices_pdirect_df_exists <- which(BIG[, TYPE] == TYPE_P & !is.na(BIG[, DF1]))
+    if(length(indices_pdirect_df_exists) ){
+		
+	# conversion formula for converting p to d, see: https://books.google.de/books?id=GC42CwAAQBAJ&pg=PA100&lpg=PA100&dq=meta-analysis+convert+chi2+to+d+degrees+of+freedom&source=bl&ots=_c4EHEyRis&sig=yIaUDAbQ3RfPvLTfEE7-thpEXys&hl=de&sa=X&ved=0ahUKEwiyp-XntdnLAhWipnIKHab5CaA4ChDoAQhfMAg#v=onepage&q=meta-analysis%20convert%20chi2%20to%20d%20degrees%20of%20freedom&f=false
+	
+	  d <- (qnorm(1-(BIG[indices_pdirect_df_exists, STAT]/2))*2)/sqrt(BIG[indices_pdirect_df_exists, DF1])
+      BIG[indices_pdirect_df_exists, D] <- d * BIG[indices_pdirect_df_exists, SIGN]
+	  BIG[indices_pdirect_df_exists, N.APPROX] <- BIG[indices_pdirect_df_exists, DF1]+2
+      BIG[indices_pdirect_df_exists, G] <- BIG[indices_pdirect_df_exists, D] * (1 - (3 / (4 * BIG[indices_pdirect_df_exists, N.APPROX] - 1)))
     }
   }
 

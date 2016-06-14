@@ -99,6 +99,20 @@ shinyUI(tagList(
   		# The output panels, on the right side
   		
   		column(width=8, 
+			
+			HTML('
+			<div class="alert alert-success alert-dismissible" role="alert">
+			  <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+			  <strong>New feature:</strong> You can now enter <i>p</i>-values directly (e.g. <code>p=0.021</code>). If you provide <i>df</i> in addition (e.g. <code>p(48)=.03</code>), the <i>p</i>-value is also converted into an effect size.
+			</div>
+			'),
+			
+			HTML('
+			<div class="alert alert-warning alert-dismissible" role="alert">
+			  <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+			  <strong>Disclaimer:</strong> This web application provides several tests for publication bias/p-hacking/indicators for data-dependent analyses, whatever term you prefer. Some of them are new, unpublished, and controversial to some extent; purpose of this app is to provide a unified place for trying out and comparing these methods. Please use the tests with care, and RTM of the tests.
+			</div>
+			'),
   
   			# show warning if experimental features are activated
   			htmlOutput("experimental_warning"),
@@ -107,7 +121,7 @@ shinyUI(tagList(
   			htmlOutput("parser_errors"),
   			
   			tabsetPanel(id ="tabs1",				
-  				tabPanel("R-Index",					
+  				tabPanel("Excess Significance",					
   					htmlOutput("rindex_summary"),
   					conditionalPanel(
   						condition = "input.group_by_paper == 1",
@@ -143,7 +157,7 @@ shinyUI(tagList(
   				# tabPanel("Meta-analysis (beta)",
   # 					htmlOutput("meta")
   # 				),
-  				tabPanel("Effect-sizes (beta)",
+  				tabPanel("Effect-sizes",
   				  br(),
   					alert.create('The test statistics are converted to Cohen`s d (resp. Hedge`s g) wherever possible, based on the formulas provided by Borenstein, Hedges, Higgins, & Rothstein (2011). <strong>Warning:</strong> These effect size conversions are based on approximative formulas. Although they work good under many conditions, this cannot replace a proper meta-analysis!'),
   					ggvisOutput("ES_plot"),
