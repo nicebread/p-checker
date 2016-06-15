@@ -8,10 +8,8 @@ COLORS <- list(
 # Helper: Transform correlation to Fisher's Z
 r2Z <- function(r) {return(0.5 * log((1 + r)/(1 - r)))}
 
-
-# Helper: REcode  Fisher's to correlation
+# Helper: Recode Fisher's z to correlation
 Z2r <- function(Z) {return((exp(2*Z)-1)/(exp(2*Z)+1))}
-
 
 
 # simple wrapper: formats a number in f.2 format

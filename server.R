@@ -451,7 +451,7 @@ shinyServer(function(input, output, session) {
 	
 	output$pcurve_table <- renderUI({
 		if (nrow(dat$tbl) > 0) {
-			pcurve_table <- dat$tblDisplay[dat$tblDisplay$focal==TRUE, c("paper_id", "study_id", "type", "df1", "df2", "statistic", "p.value", "significant", "ppr", "ppl", "pp33")]
+			pcurve_table <- dat$tblDisplay[dat$tbl$focal==TRUE & dat$tbl$p.value <= .05, c("paper_id", "study_id", "type", "df1", "df2", "statistic", "p.value", "significant", "ppr", "ppl", "pp33")]
 			
 			if (input$only_first_ES == TRUE) {
 				pcurve_table <- pcurve_table %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1)
@@ -481,7 +481,7 @@ shinyServer(function(input, output, session) {
 				legend("topright", lty=c("solid", "dotted", "dashed"), col=c(COLORS$BLUE, "darkgreen", "red"), legend=c("Observed p-curve", paste0(input$pcurve_power, "% power curve"), "Nil effect"), bty="n")
 		
 				# select only focal and significant hypothesis tests
-				tbl <- dat$tbl[dat$tbl$focal==TRUE & dat$tbl$significant==TRUE, ]
+				tbl <- dat$tbl[dat$tbl$focal==TRUE & dat$tbl$p.value <= .05, ]
 		
 				if (input$only_first_ES == TRUE) {
 					tbl <- tbl %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1)
@@ -615,7 +615,7 @@ shinyServer(function(input, output, session) {
 	
 	output$effectsizes <- renderUI({
 		
-		TBL <- dat$tbl %>% filter(!is.na(g))
+		TBL <- dat$tbl %>% filter(!is.na(g), !is.na(n.approx))
 		
 		if (nrow(TBL) > 1) {
 			
@@ -634,7 +634,8 @@ shinyServer(function(input, output, session) {
 			
 			#ES_plot <- ggplot(TBL, aes(x=n.approx, y=abs(g.abs))) + geom_point() + xlab("Approximate n (log scale)") + ylab("Absolute Hedge's g") + geom_smooth(method=lm) + scale_x_log10(breaks=round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)))
 			
-			ES_table <- dat$tblDisplay[!is.na(dat$tblDisplay$g), c("paper_id", "study_id", "type", "df1", "df2", "statistic", "p.value", "n.approx", "d", "g")]
+			print(str(dat$tblDisplay))
+			ES_table <- dat$tblDisplay %>% filter(g != "NA", n.approx != "NA") %>% select(paper_id, study_id, type, df1, df2, statistic, p.value, n.approx, d, g)
 			
 			#tooltip <- function(x) {
 			  #if (is.null(x) | is.null(x$id)) return(NULL)
@@ -657,14 +658,20 @@ shinyServer(function(input, output, session) {
 		  })
 		  
 		  
-		  # Begg & Mazumdar Rank correlation test for publication bias
-		  suppressWarnings({
-			  Begg <- cor.test(TBL$n.approx, TBL$g, use="p", method="kendall")
-		  })
+		  # Begg & Mazumdar Rank correlation test for publication bias; only if k>2
+		  if (nrow(TBL) > 2) {
+			  suppressWarnings({
+				  Begg <- cor.test(TBL$n.approx, TBL$g, use="p", method="kendall")
+			  })
+		  } else {
+		  	Begg <- NULL
+		  }
 		  
 			return(list(
-				HTML(paste0("<h4>Rank correlation of effect size vs. sample size (Begg & Mazumdar's (1994) test for publication bias):</h4><h4>Kendall's <i>tau</i> = ", round(Begg$estimate, 2), " (", p(Begg$p.value), ")</h4>")),
-				HTML("<p>A significant negative rank correlation indicates publication bias. The test has a good Type I error control (i.e., it only gives false alarms of publication bias around the nominal 5% level) but relatively low power to detect actual publication bias.</p>"),
+				HTML(ifelse(is.null(Begg), "", 
+					paste0("<h4>Rank correlation of effect size vs. sample size (Begg & Mazumdar's (1994) test for publication bias): Kendall's <i>tau</i> = ", round(Begg$estimate, 2), " (", p(Begg$p.value), ")</h4>
+				<p>A significant negative rank correlation indicates publication bias. The test has a good Type I error control (i.e., it only gives false alarms of publication bias around the nominal 5% level) but relatively low power to detect actual publication bias.</p>"))),
+				
 					HTML('<p>In a set of studies with a fixed-<i>n</i> design and the same underlying effect, sample size should be unrelated to the estimated effect size (ES). A negative correlation between sample size and ES typically is seen as an indicator of publication bias and/or <i>p</i>-hacking. This bias is attempted to be corrected by meta-regression techniques such as <a href="http://onlinelibrary.wiley.com/doi/10.1002/jrsm.1095/abstract">PET-PEESE</a>.</p>
 					<p>You should be aware, however, that some valid processes can also lead to a correlation between ES and N:
 <ul>
@@ -771,7 +778,8 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	
 	
 	# ---------------------------------------------------------------------
-	# Export for p-curve; save analysis as link
+	# Export: save analysis as link
+	# TODO: Also save the chosen analyis options
 	
 	output$export <- renderUI({
 		if (nrow(dat$tbl) > 0) {

@@ -410,8 +410,14 @@ parse_ES <- function(txt, round_up = FALSE) {
   
   # compute directly entered p-value
   if(length(indices_pdirect) ) {
-	# assume that the directly reported p-value is the correct p-value
-    BIG[indices_pdirect, P.VALUE] <- BIG[indices_pdirect, STAT]
+	
+    BIG[indices_pdirect, P.REPORTED] <- BIG[indices_pdirect, STAT]
+	
+	# assume that the directly reported p-value is the correct p-value;	
+	BIG[indices_pdirect, P.VALUE] <- BIG[indices_pdirect, STAT]
+	
+	# If one-tailed, the actual p-value is double the size
+	BIG[indices_pdirect, P.VALUE][BIG[indices_pdirect, ONE.TAILED] == 1] <- BIG[indices_pdirect, P.VALUE][BIG[indices_pdirect, ONE.TAILED] == 1]*2
 
 	indices_pdirect_df_exists <- which(BIG[, TYPE] == TYPE_P & !is.na(BIG[, DF1]))
     if(length(indices_pdirect_df_exists) ){
