@@ -34,7 +34,8 @@ shinyServer(function(input, output, session) {
 					"f" = {res <- c(res, paste0("F(", dat$tbl$df1[i], ", ", dat$tbl$df2[i], ")=", dat$tbl$statistic[i]))},
 					"chi2" = {res <- c(res, paste0("chi2(", dat$tbl$df1[i], ")=", dat$tbl$statistic[i]))},
 					"r" = {res <- c(res, paste0("r(", dat$tbl$df1[i], ")=", f2(dat$tbl$statistic[i], decimalplaces(dat$tbl$statistic[i]), skipZero=TRUE)))},
-					"z" = {res <- c(res, paste0("Z=", dat$tbl$statistic[i]))}
+					"z" = {res <- c(res, paste0("Z=", dat$tbl$statistic[i]))},
+					"p" = {res <- c(res, paste0("p", ifelse(!is.na(dat$tbl$df1[i]), paste0("(", dat$tbl$df1[i], ")"), ""), "=", dat$tbl$statistic[i]))}
 				)
 			}
 		
@@ -605,7 +606,14 @@ shinyServer(function(input, output, session) {
 
 	
 	shinyjs::onclick("send2pcurve", {
+		
 		res1 <- paste(exportTbl(), collapse="\n")
+		
+		tbl <- dat$tbl %>% filter(focal==TRUE, significant==TRUE, type=="p")
+		if (nrow(tbl) > 0) {
+			info(paste0("p-curve.com does not accept directly entered p-values (only test statistics). Results are exported without: ", paste0("p=", tbl$statistic, collapse="; ")))
+		}
+		
 		pcurve_link <- paste0("http://www.p-curve.com/app4/?tests=", URLencode(res1, reserved=TRUE))
 		js$browseURL(pcurve_link)
     })
