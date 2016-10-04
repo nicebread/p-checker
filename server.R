@@ -34,7 +34,8 @@ shinyServer(function(input, output, session) {
 					"f" = {res <- c(res, paste0("F(", dat$tbl$df1[i], ", ", dat$tbl$df2[i], ")=", dat$tbl$statistic[i]))},
 					"chi2" = {res <- c(res, paste0("chi2(", dat$tbl$df1[i], ")=", dat$tbl$statistic[i]))},
 					"r" = {res <- c(res, paste0("r(", dat$tbl$df1[i], ")=", f2(dat$tbl$statistic[i], decimalplaces(dat$tbl$statistic[i]), skipZero=TRUE)))},
-					"z" = {res <- c(res, paste0("Z=", dat$tbl$statistic[i]))}
+					"z" = {res <- c(res, paste0("Z=", dat$tbl$statistic[i]))},
+					"p" = {res <- c(res, paste0("p", ifelse(!is.na(dat$tbl$df1[i]), paste0("(", dat$tbl$df1[i], ")"), ""), "=", dat$tbl$statistic[i]))}
 				)
 			}
 		
@@ -51,10 +52,17 @@ shinyServer(function(input, output, session) {
 	  output$syntax <- renderUI({
 		  query <- parseQueryString(session$clientData$url_search)
 		  
-		  if (is.null(query["syntax"]) | query["syntax"] == "NULL") {
-			  res <- paste(readLines("snippets/demo_syntax.txt", encoding="UTF-8"), collapse="\n")
-		  } else {
+		  if (!is.null(query["preset"]) & query["preset"] != "NULL") {
+			  # set to default demo
 			  res <- query["syntax"]
+			  
+			  # try to change the demo dropdown box. This triggers the observe event that changes the text of the input field
+			  updateSelectInput(session, "demodata", selected = query["preset"])
+			  
+		  } else if (!is.null(query["syntax"]) & query["syntax"] != "NULL") {
+			  res <- query["syntax"]
+		  } else {
+			  res <- paste(readLines("snippets/demo_syntax.txt", encoding="UTF-8"), collapse="\n")
 		  }
 
 		return(list(
@@ -93,7 +101,7 @@ shinyServer(function(input, output, session) {
 		# ---------------------------------------------------------------------
 		# R-index computations
 		
-		tbl$Z <- qnorm(1-(tbl$p.value/2))
+		tbl$Z <- qnorm(tbl$p.value.log - log(2), lower.tail = FALSE, log.p=TRUE)
 		tbl$obs.pow <- pnorm(tbl$Z-qnorm(1-tbl$p.crit/2))
 		
 		# set all values of non-focal tests to NA
@@ -300,7 +308,7 @@ shinyServer(function(input, output, session) {
 			inflation_rate <- success_rate - obs_power
 			r_index <- obs_power - inflation_rate
 		
-			tiva <- TIVA(tbl$p.value)
+			tiva <- TIVA(tbl$p.value.log, log.p=TRUE)
 			
 			result <- paste0(
 				"<h3>R-Index analysis:</h3><h4>",
@@ -394,7 +402,7 @@ shinyServer(function(input, output, session) {
 
 		# One TIVA analysis across all ES
 		if (input$group_by_paper == FALSE) {
-			tiva <- TIVA(tbl$p.value)
+			tiva <- TIVA(tbl$p.value.log, log.p=TRUE)
 
 			result <- paste0(
 				"<h3>Test of insufficient variance (TIVA):</h3>",
@@ -413,7 +421,7 @@ shinyServer(function(input, output, session) {
 		if (input$group_by_paper == TRUE) {
 			tiva <- data.frame()
 			for (i in unique(tbl$paper_id)) {
-				tiva <- rbind(tiva, data.frame(paper_id = i, TIVA(tbl$p.value[tbl$paper_id == i])))
+				tiva <- rbind(tiva, data.frame(paper_id = i, TIVA(tbl$p.value.log[tbl$paper_id == i], log.p=TRUE)))
 			}
 			
 			# remove rows where only 1 test stat was provided
@@ -451,7 +459,7 @@ shinyServer(function(input, output, session) {
 	
 	output$pcurve_table <- renderUI({
 		if (nrow(dat$tbl) > 0) {
-			pcurve_table <- dat$tblDisplay[dat$tblDisplay$focal==TRUE, c("paper_id", "study_id", "type", "df1", "df2", "statistic", "p.value", "significant", "ppr", "ppl", "pp33")]
+			pcurve_table <- dat$tblDisplay[dat$tbl$focal==TRUE & dat$tbl$p.value <= .05, c("paper_id", "study_id", "type", "df1", "df2", "statistic", "p.value", "significant", "ppr", "ppl", "pp33")]
 			
 			if (input$only_first_ES == TRUE) {
 				pcurve_table <- pcurve_table %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1)
@@ -481,7 +489,7 @@ shinyServer(function(input, output, session) {
 				legend("topright", lty=c("solid", "dotted", "dashed"), col=c(COLORS$BLUE, "darkgreen", "red"), legend=c("Observed p-curve", paste0(input$pcurve_power, "% power curve"), "Nil effect"), bty="n")
 		
 				# select only focal and significant hypothesis tests
-				tbl <- dat$tbl[dat$tbl$focal==TRUE & dat$tbl$significant==TRUE, ]
+				tbl <- dat$tbl[dat$tbl$focal==TRUE & dat$tbl$p.value <= .05, ]
 		
 				if (input$only_first_ES == TRUE) {
 					tbl <- tbl %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1)
@@ -605,7 +613,14 @@ shinyServer(function(input, output, session) {
 
 	
 	shinyjs::onclick("send2pcurve", {
+		
 		res1 <- paste(exportTbl(), collapse="\n")
+		
+		tbl <- dat$tbl %>% filter(focal==TRUE, significant==TRUE, type=="p")
+		if (nrow(tbl) > 0) {
+			info(paste0("p-curve.com does not accept directly entered p-values (only test statistics). Results are exported without: ", paste0("p=", tbl$statistic, collapse="; ")))
+		}
+		
 		pcurve_link <- paste0("http://www.p-curve.com/app4/?tests=", URLencode(res1, reserved=TRUE))
 		js$browseURL(pcurve_link)
     })
@@ -615,9 +630,9 @@ shinyServer(function(input, output, session) {
 	
 	output$effectsizes <- renderUI({
 		
-		TBL <- dat$tbl %>% filter(!is.na(g))
+		TBL <- dat$tbl %>% filter(!is.na(g), !is.na(n.approx))
 		
-		if (nrow(TBL) > 0) {
+		if (nrow(TBL) > 1) {
 			
 		  isolate({
 			TBL$g.abs <- abs(TBL$g)
@@ -634,7 +649,7 @@ shinyServer(function(input, output, session) {
 			
 			#ES_plot <- ggplot(TBL, aes(x=n.approx, y=abs(g.abs))) + geom_point() + xlab("Approximate n (log scale)") + ylab("Absolute Hedge's g") + geom_smooth(method=lm) + scale_x_log10(breaks=round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)))
 			
-			ES_table <- dat$tblDisplay[!is.na(dat$tblDisplay$g), c("paper_id", "study_id", "type", "df1", "df2", "statistic", "p.value", "n.approx", "d", "g")]
+			ES_table <- dat$tblDisplay %>% filter(g != "NA", n.approx != "NA") %>% select(paper_id, study_id, type, df1, df2, statistic, p.value, n.approx, d, g)
 			
 			#tooltip <- function(x) {
 			  #if (is.null(x) | is.null(x$id)) return(NULL)
@@ -657,14 +672,20 @@ shinyServer(function(input, output, session) {
 		  })
 		  
 		  
-		  # Begg & Mazumdar Rank correlation test for publication bias
-		  suppressWarnings({
-			  Begg <- cor.test(TBL$n.approx, TBL$g, use="p", method="kendall")
-		  })
+		  # Begg & Mazumdar Rank correlation test for publication bias; only if k>2
+		  if (nrow(TBL) > 2) {
+			  suppressWarnings({
+				  Begg <- cor.test(TBL$n.approx, TBL$g, use="p", method="kendall")
+			  })
+		  } else {
+		  	Begg <- NULL
+		  }
 		  
 			return(list(
-				HTML(paste0("<h4>Rank correlation of effect size vs. sample size (Begg & Mazumdar's (1994) test for publication bias):</h4><h4>Kendall's <i>tau</i> = ", round(Begg$estimate, 2), " (", p(Begg$p.value), ")</h4>")),
-				HTML("<p>A significant negative rank correlation indicates publication bias. The test has a good Type I error control (i.e., it only gives false alarms of publication bias around the nominal 5% level) but relatively low power to detect actual publication bias.</p>"),
+				HTML(ifelse(is.null(Begg), "", 
+					paste0("<h4>Rank correlation of effect size vs. sample size (Begg & Mazumdar's (1994) test for publication bias): Kendall's <i>tau</i> = ", round(Begg$estimate, 2), " (", p(Begg$p.value), ")</h4>
+				<p>A significant negative rank correlation indicates publication bias. The test has a good Type I error control (i.e., it only gives false alarms of publication bias around the nominal 5% level) but relatively low power to detect actual publication bias.</p>"))),
+				
 					HTML('<p>In a set of studies with a fixed-<i>n</i> design and the same underlying effect, sample size should be unrelated to the estimated effect size (ES). A negative correlation between sample size and ES typically is seen as an indicator of publication bias and/or <i>p</i>-hacking. This bias is attempted to be corrected by meta-regression techniques such as <a href="http://onlinelibrary.wiley.com/doi/10.1002/jrsm.1095/abstract">PET-PEESE</a>.</p>
 					<p>You should be aware, however, that some valid processes can also lead to a correlation between ES and N:
 <ul>
@@ -682,7 +703,9 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 					)
 				))	
 		} else {
-			return(NULL)
+			return(list(
+				HTML("<h4>Too few effect sizes for plotting!</h4><br>Enter >= 2 effect sizes.")
+			))
 		}
 	})
 	
@@ -702,7 +725,7 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	reactive({
 	  TBL <- dat$tbl %>% filter(!is.na(g))
 	        
-	   if (nrow(TBL) > 0) {  
+	   if (nrow(TBL) > 1) {  
 	     TBL$g.abs <- abs(TBL$g)
 	     TBL$label <- paste0("Row ", 1:nrow(TBL), ": ", TBL$paper_id, " ", TBL$study_id)
 	     TBL$id <- 1:nrow(TBL)
@@ -718,13 +741,14 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	       scale_numeric("x", domain=x.limits, trans="log", nice=FALSE, expand=0) %>%
 	       add_tooltip(tooltip, "click") 
 	   } else {
-	     #print('Reactiv Expr: TBL doesnt exist')
+	     print('Reactiv Expr: TBL doesnt exist')
 	     
 	     # dummy plot
 	     me <- data.frame(x = 1, y = 1)
-	     me %>% 
-	       ggvis(x = ~x, y = ~y) %>%	  
-	       add_tooltip(tooltip, "click") 
+	     me %>%
+	       ggvis(x = ~x, y = ~y) %>%
+	       add_tooltip(tooltip, "click")
+
 	   }
 	}) %>% bind_shiny("ES_plot")
 	
@@ -768,7 +792,8 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	
 	
 	# ---------------------------------------------------------------------
-	# Export for p-curve; save analysis as link
+	# Export: save analysis as link
+	# TODO: Also save the chosen analyis options
 	
 	output$export <- renderUI({
 		if (nrow(dat$tbl) > 0) {
@@ -785,6 +810,41 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 			return(NULL)
 		}
 	})
+	
+	
+	
+	## ======================================================================
+	## The demodata tab
+	## ======================================================================
+	
+	output$demodata <- renderUI({
+		
+		return(list(
+			HTML('
+			<style>
+			 .actionButton .parent {
+			  width: 300px;
+			  height: 120px;
+			  background-color: #fff;
+			  border-radius: 5px;
+			  border-radius: 5px;
+			}
+
+			.actionButton .parent:hover {
+			  box-shadow: 1px 1px 5px #999;
+			}
+			</style>
+
+			<div class="actionButton section">
+			    <button class="parent">
+			        <img class="left" src="//dummyimage.com/100" align="left">
+			        <span align="right"> Click me! </span>
+			    </button>
+			</div>
+			')
+		))	
+	})
+	
 	
 	
 	
@@ -814,36 +874,31 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	# Load demo data
 	observe({
 		con <- NULL
+		demo <- ""
 		switch(input$demodata,
 			"JPSP1" = {
-				demo <- readLines(con <- file("demo-data/JPSP-p-curve.txt"))
-				demo2 <- paste(demo, collapse="\n")
-				updateTextInput(session, inputId = "txt", value = demo2)
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/JPSP-p-curve.txt"))
 				},
 			"855" = {
-				#demo <- readLines(con <- file("demo-data/855_t_tests.txt"))
-				#demo2 <- paste(demo, collapse="\n")
 				updateTextInput(session, inputId = "txt", value = readFile("demo-data/855_t_tests.txt"))
 				},
 			"H0_100x5" = {
-				demo <- readLines(con <- file("demo-data/H0_100x5.txt"))
-				demo2 <- paste(demo, collapse="\n")
-				updateTextInput(session, inputId = "txt", value = demo2)
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/H0_100x5.txt"))
 			},
 			"H1_100x5" = {
-				demo <- readLines(con <- file("demo-data/H1_100x5.txt"))
-				demo2 <- paste(demo, collapse="\n")
-				updateTextInput(session, inputId = "txt", value = demo2)
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/H1_100x5.txt"))
 			},
 			"H0_hack_100x5" = {
-				demo <- readLines(con <- file("demo-data/H0_hack_100x5.txt"))
-				demo2 <- paste(demo, collapse="\n")
-				updateTextInput(session, inputId = "txt", value = demo2)
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/H0_hack_100x5.txt"))
 			},
 			"elderly" = {
-				demo <- readLines(con <- file("demo-data/elderly_priming.txt"))
-				demo2 <- paste(demo, collapse="\n")
-				updateTextInput(session, inputId = "txt", value = demo2)
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/elderly_priming.txt"))
+			},
+			"glucose" = {
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/glucose.txt"))
+			},
+			"powerposing" = {
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/powerposing.txt"))
 			}
 		)
 		if (!is.null(con)) close(con)

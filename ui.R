@@ -79,6 +79,8 @@ shinyUI(tagList(
   				br(),br(),
   				selectInput('demodata','Load demo data', c(
   					"---"="---",
+					"Power posing by @jpsimmon"="powerposing",
+					"Glucose and self-control by @mavadillo"="glucose",
   					"Elderly priming analysis by @lakens"="elderly",
   					"Non-hacked JPSP data (Simonsohn et al., 2014, Figure 3B)"="JPSP1",
   					"855 t-tests (Wetzels et al., 2011)"="855",
@@ -100,19 +102,9 @@ shinyUI(tagList(
   		
   		column(width=8, 
 			
-			HTML('
-			<div class="alert alert-success alert-dismissible" role="alert">
-			  <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-			  <strong>New feature:</strong> You can now enter <i>p</i>-values directly (e.g. <code>p=0.021</code>). If you provide <i>df</i> in addition (e.g. <code>p(48)=.03</code>), the <i>p</i>-value is also converted into an effect size.
-			</div>
-			'),
+			alert.create('<strong>New feature:</strong> You can now enter <i>p</i>-values directly (e.g. <code>p=0.021</code>). If you provide the sample size in addition (e.g. <code>p(48)=.03</code>), the <i>p</i>-value is also converted into an effect size.', style="success"),
 			
-			HTML('
-			<div class="alert alert-warning alert-dismissible" role="alert">
-			  <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-			  <strong>Disclaimer:</strong> This web application provides several tests for publication bias/p-hacking/indicators for data-dependent analyses, whatever term you prefer. Some of them are new, unpublished, and controversial to some extent; purpose of this app is to provide a unified place for trying out and comparing these methods. Please use the tests with care, and RTM of the tests.
-			</div>
-			'),
+			alert.create('<strong>Disclaimer:</strong> This web application provides several tests for publication bias/p-hacking/indicators for data-dependent analyses, whatever term you prefer. Some of them are new, unpublished, and controversial to some extent; purpose of this app is to provide a unified place for trying out and comparing these methods. Please use the tests with care, and RTM of the tests.', style="info"),
   
   			# show warning if experimental features are activated
   			htmlOutput("experimental_warning"),
@@ -167,12 +159,15 @@ shinyUI(tagList(
   				# tabPanel("Research style analysis (beta)",
   				# 	htmlOutput("researchstyle")
   				# ),
-  				tabPanel("p values correctly reported?",
+  				tabPanel("p values correct?",
   					htmlOutput("report_table")
   				),
   				tabPanel("Export", 					
   					tableOutput("export")
-  				)
+  				)#,
+  				# tabPanel("Demo data",
+  				# 	htmlOutput("demodata")
+  				# )
   			)
   		)
   	)	

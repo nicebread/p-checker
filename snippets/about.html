@@ -1,5 +1,5 @@
 <h2>About</h2>
-<i>(c) 2015 by <a href="mailto:felix@nicebread.de">Felix Schönbrodt</a> (<a href="http://www.nicebread.de">www.nicebread.de</a>). The source code of this app is licensed under the open GPL-2 license and is published on <a href="https://github.com/nicebread/p-checker">Github</a>.</i>
+<i>(c) 2016 by <a href="mailto:felix@nicebread.de">Felix Schönbrodt</a> (<a href="http://www.nicebread.de">www.nicebread.de</a>). The source code of this app is licensed under the open GPL-2 license and is published on <a href="https://github.com/nicebread/p-checker">Github</a>.</i>
 <br><br>
 
 This Shiny app implements the <b>p-curve</b> (Simonsohn, Nelson, & Simmons, 2014; see <a href="http://www.p-curve.com">http://www.p-curve.com</a>) in its previous ("app2") and the current version ("app3"), the <b>R-Index</b> and the <b>Test of Insufficient Variance, TIVA</b> (Schimmack, 2014; see <a href="http://www.r-index.org/">http://www.r-index.org/</a>), and tests whether <b><i>p</i> values are reported correctly</b>.
@@ -47,6 +47,19 @@ Lakens, D. (2014). Professors are not elderly: Evaluating the evidential value o
 </small>
 
 <h3>Release notes</h3>
+
+<h4>Version 0.6.2 (2016-10-04)</h4>
+
+Changes:
+<br/>
+<ul>
+<li>
+	Changed TIVA computation to log(p), which allows much smaller p-values (thanks to Rickard Carlsson @RickCarlsson for pointing out the bug).
+</li>
+<li>
+	Added power posing p-curve data from Joe Simmons and Uri Simonsohn (see <a href="http://datacolada.org/37">http://datacolada.org/37</a>)
+</li>
+</ul>
 
 <h4>Version 0.6.1 (2016-06-14)</h4>
 

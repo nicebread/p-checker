@@ -1,0 +1,43 @@
+# Data from Vadillo, M. A., Gold, N., & Osman, M. (2016). The Bitter Truth About Sugar and Willpower: The Limited Evidential Value of the Glucose Model of Ego Depletion. Psychological Science (online first). http://doi.org/10.1177/0956797616654911
+# Data retrieved with permission from https://osf.io/438jx/. 
+# For disclosure table about in/exclusion of effect sizes, see also there. 
+# Thanks to @mavadillo for sharing open data!
+
+t(15) = 2.469
+t(67) = -2.19
+t(151) = 2.24
+F(1,55) = 6.64
+z = 1.88
+F(1,177) = 5.63
+r(50) = -.30
+F(1,100) = 6.08
+t(33) = 2.20
+r(14) = -.62
+r(10) = .56
+r(21) = .45
+r(15) = .43
+F(1,57) = 5.04
+F(1,69) = 5.45
+t(16) = 3.13
+t(47) = 2.21
+F(1,24) = 8.42
+F(1,30) = 6.12
+F(1,32) = 4.06
+F(1,40) = 10.32
+F(1,36) = 7.28
+F(4,75) = 2.95
+t(78) = 2.10
+F(1,58) = 5.16
+F(1,139) = 5.28
+F(1,67) = 0.80
+F(1,68) = 1.12
+F(1,110) = 0.01
+t(68) = 0.05
+F(1,111) = 5.311
+F(1,83) = 2.05
+F(1,39) = 4.54
+F(1,28) = 5.02
+F(1,158) = 0.379
+t(49) = -2.129
+t(31) = 2.55
+t(32) = 3.12
