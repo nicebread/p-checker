@@ -80,9 +80,10 @@ parse_ES <- function(txt, round_up = FALSE) {
   D.REPORTED.ERROR.DIRECTION  <- 27
   D.REPORTED.ERROR  <- 28
   REPORTING.ERROR <- 29
+  P.VALUE.LOG       <- 30
 
   # output matrix for all data in numeric form
-  BIG <- matrix(NA, nrow = nlines, ncol = 29)
+  BIG <- matrix(NA, nrow = nlines, ncol = 30)
 
   # find study labels and extract them (everything before ":")
   extraction <- stri_match_first_regex(txt.lines, '^ *(.*?) *(?:(?<=\\)) *(.+?) *)?: *')
@@ -351,6 +352,8 @@ parse_ES <- function(txt, round_up = FALSE) {
   if(length(indices_t))
   {
     BIG[indices_t, P.VALUE] <- pt(BIG[indices_t, STAT], BIG[indices_t, DF1], lower.tail=FALSE) * 2
+	BIG[indices_t, P.VALUE.LOG] <- pt(BIG[indices_t, STAT], BIG[indices_t, DF1], lower.tail=FALSE, log.p = TRUE) + log(2)
+	
     BIG[indices_t, D] <- (2*BIG[indices_t, STAT] / sqrt(BIG[indices_t, DF1])) * BIG[indices_t, SIGN]
     BIG[indices_t, G] <- BIG[indices_t, D] * ( 1- (3/(4 * BIG[indices_t, DF1] - 1)))
     BIG[indices_t, N.APPROX] <- BIG[indices_t, DF1] + 2
@@ -359,8 +362,10 @@ parse_ES <- function(txt, round_up = FALSE) {
   # compute pearson's r
   if(length(indices_r))
   {
-    BIG[indices_r, P.VALUE] <- sqrt(BIG[indices_r, DF1]) * BIG[indices_r, STAT] / sqrt(1 - BIG[indices_r, STAT]^2)
-    BIG[indices_r, P.VALUE] <- pt(BIG[indices_r, P.VALUE], BIG[indices_r, DF1], lower.tail=FALSE) * 2
+	# t value from correlation
+	t.r <- BIG[indices_r, STAT]*sqrt(BIG[indices_r, DF1] / (1 - BIG[indices_r, STAT]^2))
+    BIG[indices_r, P.VALUE] <- pt(t.r, BIG[indices_r, DF1], lower.tail=FALSE) * 2
+	BIG[indices_r, P.VALUE.LOG] <- pt(t.r, BIG[indices_r, DF1], lower.tail=FALSE, log.p = TRUE) + log(2)
     BIG[indices_r, D] <- BIG[indices_r, SIGN] * (2 * BIG[indices_r, STAT]) / sqrt(1 - BIG[indices_r, STAT]^2)
     BIG[indices_r, G] <- BIG[indices_r, D] * (1 - (3 / (4 * BIG[indices_r, DF1] - 1)))
     BIG[indices_r, N.APPROX] <- BIG[indices_r, DF1] + 2
@@ -378,11 +383,13 @@ parse_ES <- function(txt, round_up = FALSE) {
       BIG[indices_f_df1_is_1, N.APPROX] <- BIG[indices_f_df1_is_1, DF2] + 2
     }
     BIG[indices_f, P.VALUE] <- pf(BIG[indices_f, STAT], BIG[indices_f, DF1], BIG[indices_f, DF2], lower.tail=FALSE)
+	BIG[indices_f, P.VALUE.LOG] <- pf(BIG[indices_f, STAT], BIG[indices_f, DF1], BIG[indices_f, DF2], lower.tail=FALSE, log.p = TRUE)
   }
 
   # compute z-value
   if(length(indices_z) ) {
     BIG[indices_z, P.VALUE] <- pnorm(BIG[indices_z, STAT], lower.tail=FALSE) * 2
+	BIG[indices_z, P.VALUE.LOG] <- pnorm(BIG[indices_z, STAT], lower.tail=FALSE, log.p = TRUE) + log(2)
 
     indices_z_df_exists <- which(BIG[, TYPE] == TYPE_Z & !is.na(BIG[, DF1]))
     if(length(indices_z_df_exists) ){
@@ -397,6 +404,7 @@ parse_ES <- function(txt, round_up = FALSE) {
   if(length(indices_chi2)){
     # If two numbers are provided for chi2, the first are the dfs, the second is the sample size
     BIG[indices_chi2, P.VALUE] <- pchisq(BIG[indices_chi2, STAT], BIG[indices_chi2, DF1], lower.tail=FALSE)
+	BIG[indices_chi2, P.VALUE.LOG] <- pchisq(BIG[indices_chi2, STAT], BIG[indices_chi2, DF1], lower.tail=FALSE, log.p = TRUE)
 
     indices_chi2_with_n <- which(BIG[,TYPE] == TYPE_CHI2 & BIG[,DF1] == 1 & !is.na(BIG[,DF2]))
 
@@ -415,9 +423,11 @@ parse_ES <- function(txt, round_up = FALSE) {
 	
 	# assume that the directly reported p-value is the correct p-value;	
 	BIG[indices_pdirect, P.VALUE] <- BIG[indices_pdirect, STAT]
+	BIG[indices_pdirect, P.VALUE.LOG] <- log(BIG[indices_pdirect, STAT])
 	
 	# If one-tailed, the actual p-value is double the size
 	BIG[indices_pdirect, P.VALUE][BIG[indices_pdirect, ONE.TAILED] == 1] <- BIG[indices_pdirect, P.VALUE][BIG[indices_pdirect, ONE.TAILED] == 1]*2
+	BIG[indices_pdirect, P.VALUE.LOG][BIG[indices_pdirect, ONE.TAILED] == 1] <- BIG[indices_pdirect, P.VALUE.LOG][BIG[indices_pdirect, ONE.TAILED] == 1]+ log(2)
 
 	indices_pdirect_df_exists <- which(BIG[, TYPE] == TYPE_P & !is.na(BIG[, DF1]))
     if(length(indices_pdirect_df_exists) ){
@@ -533,6 +543,7 @@ parse_ES <- function(txt, round_up = FALSE) {
     d.reported.error = as.logical(BIG[,D.REPORTED.ERROR]),
     d.reported.error.direction = d.reported.error.direction,
     global.reporting.error = global.reporting.error,
+	p.value.log	= BIG[,P.VALUE.LOG],
     stringsAsFactors = FALSE
   )
 

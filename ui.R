@@ -79,6 +79,8 @@ shinyUI(tagList(
   				br(),br(),
   				selectInput('demodata','Load demo data', c(
   					"---"="---",
+					"Power posing by @jpsimmon"="powerposing",
+					"Glucose and self-control by @mavadillo"="glucose",
   					"Elderly priming analysis by @lakens"="elderly",
   					"Non-hacked JPSP data (Simonsohn et al., 2014, Figure 3B)"="JPSP1",
   					"855 t-tests (Wetzels et al., 2011)"="855",
@@ -157,12 +159,15 @@ shinyUI(tagList(
   				# tabPanel("Research style analysis (beta)",
   				# 	htmlOutput("researchstyle")
   				# ),
-  				tabPanel("p values correctly reported?",
+  				tabPanel("p values correct?",
   					htmlOutput("report_table")
   				),
   				tabPanel("Export", 					
   					tableOutput("export")
-  				)
+  				)#,
+  				# tabPanel("Demo data",
+  				# 	htmlOutput("demodata")
+  				# )
   			)
   		)
   	)	

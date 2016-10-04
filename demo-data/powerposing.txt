@@ -1,0 +1,36 @@
+# Data from Simmons, Joseph P. and Simonsohn, Uri, Power Posing: P-Curving the Evidence (September 26, 2016). Psychological Science, Forthcoming. Available at SSRN: http://ssrn.com/abstract=2791272
+# Data retrieved from http://datacolada.org/37 ("Main p-curve results")
+# For disclosure table about in/exclusion of effect sizes, see also there. 
+# Thanks to @jpsimmon and @uri_sohn for sharing open data!
+
+Allen, Gervais, & Smith (2013): t(83)=2.24; one-tailed
+Allen, Gervais, & Smith (2013): t(83)=1.78; one-tailed
+Arnette & Pettijohn (2012): t(40)=3.28
+Bohns & Wiltermuth (2012), S1: t(83)=1.99
+Bohns & Wiltermuth (2012), S2: t(26)=2.23
+Brinol, Petty, & Wegener (2009): F(1,67)=9.91
+Carney, Cuddy, & Yap (2010), S1: chi2(1)=4.84
+Carney, Cuddy, & Yap (2010), S2: F(1,39)=4.29
+Cesario & McDonald (2013), S1: z=1.98
+Cesario & McDonald (2013), S2: z=1.91
+Cuddy et al. (in press): F(1,60)=8.33
+Fischer et al. (2011), S2: t(34)=2.30
+Huang et al. (2011), S1: F(1,73)=7.08
+Huang et al. (2011), S2: chi2(1)=5.28
+Huang et al. (2011), S3: F(1,53)=5.41
+Lee & Schnall (2014), S2: F(1,39)=5.08
+Michalak et al. (2014): F(1,28)=3.78; one-tailed
+Nair et al. (2014): F(1,70)=6.09
+Park et al. (2013), S3: F(1,101)=4.02
+Park et al. (2013), S4: F(1,79)=4.24
+Riskind (1984), S2: F(1,37)=5.13
+Riskind (1984), S2: F(1,37)=3.20
+Riskind (1984), S3: F(1,18)=4.94
+Riskind & Gotay (1982), S1: F(1,16)=7.73
+Riskind & Gotay (1982), S2: t(18)=2.03; one-tailed
+Strelan, Weick, & Vasiljevic (2014), S3: t(79)=2.21
+Welker et al. (2013), S1: F(1,87)=1.26
+Welker et al. (2013), S2: F(1,80)=9.44
+Yap et al. (2013), S1: chi2(1)=13.0
+Yap et al. (2013), S2: F(1,29)=4.04; crit=.06 # "as predicted --> p = .05"
+Yap et al. (2013), S3: F(1,66)=4.12

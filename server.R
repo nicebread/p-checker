@@ -52,10 +52,17 @@ shinyServer(function(input, output, session) {
 	  output$syntax <- renderUI({
 		  query <- parseQueryString(session$clientData$url_search)
 		  
-		  if (is.null(query["syntax"]) | query["syntax"] == "NULL") {
-			  res <- paste(readLines("snippets/demo_syntax.txt", encoding="UTF-8"), collapse="\n")
-		  } else {
+		  if (!is.null(query["preset"]) & query["preset"] != "NULL") {
+			  # set to default demo
 			  res <- query["syntax"]
+			  
+			  # try to change the demo dropdown box. This triggers the observe event that changes the text of the input field
+			  updateSelectInput(session, "demodata", selected = query["preset"])
+			  
+		  } else if (!is.null(query["syntax"]) & query["syntax"] != "NULL") {
+			  res <- query["syntax"]
+		  } else {
+			  res <- paste(readLines("snippets/demo_syntax.txt", encoding="UTF-8"), collapse="\n")
 		  }
 
 		return(list(
@@ -94,7 +101,7 @@ shinyServer(function(input, output, session) {
 		# ---------------------------------------------------------------------
 		# R-index computations
 		
-		tbl$Z <- qnorm(1-(tbl$p.value/2))
+		tbl$Z <- qnorm(tbl$p.value.log - log(2), lower.tail = FALSE, log.p=TRUE)
 		tbl$obs.pow <- pnorm(tbl$Z-qnorm(1-tbl$p.crit/2))
 		
 		# set all values of non-focal tests to NA
@@ -301,7 +308,7 @@ shinyServer(function(input, output, session) {
 			inflation_rate <- success_rate - obs_power
 			r_index <- obs_power - inflation_rate
 		
-			tiva <- TIVA(tbl$p.value)
+			tiva <- TIVA(tbl$p.value.log, log.p=TRUE)
 			
 			result <- paste0(
 				"<h3>R-Index analysis:</h3><h4>",
@@ -395,7 +402,7 @@ shinyServer(function(input, output, session) {
 
 		# One TIVA analysis across all ES
 		if (input$group_by_paper == FALSE) {
-			tiva <- TIVA(tbl$p.value)
+			tiva <- TIVA(tbl$p.value.log, log.p=TRUE)
 
 			result <- paste0(
 				"<h3>Test of insufficient variance (TIVA):</h3>",
@@ -414,7 +421,7 @@ shinyServer(function(input, output, session) {
 		if (input$group_by_paper == TRUE) {
 			tiva <- data.frame()
 			for (i in unique(tbl$paper_id)) {
-				tiva <- rbind(tiva, data.frame(paper_id = i, TIVA(tbl$p.value[tbl$paper_id == i])))
+				tiva <- rbind(tiva, data.frame(paper_id = i, TIVA(tbl$p.value.log[tbl$paper_id == i], log.p=TRUE)))
 			}
 			
 			# remove rows where only 1 test stat was provided
@@ -642,7 +649,6 @@ shinyServer(function(input, output, session) {
 			
 			#ES_plot <- ggplot(TBL, aes(x=n.approx, y=abs(g.abs))) + geom_point() + xlab("Approximate n (log scale)") + ylab("Absolute Hedge's g") + geom_smooth(method=lm) + scale_x_log10(breaks=round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)))
 			
-			print(str(dat$tblDisplay))
 			ES_table <- dat$tblDisplay %>% filter(g != "NA", n.approx != "NA") %>% select(paper_id, study_id, type, df1, df2, statistic, p.value, n.approx, d, g)
 			
 			#tooltip <- function(x) {
@@ -807,6 +813,41 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	
 	
 	
+	## ======================================================================
+	## The demodata tab
+	## ======================================================================
+	
+	output$demodata <- renderUI({
+		
+		return(list(
+			HTML('
+			<style>
+			 .actionButton .parent {
+			  width: 300px;
+			  height: 120px;
+			  background-color: #fff;
+			  border-radius: 5px;
+			  border-radius: 5px;
+			}
+
+			.actionButton .parent:hover {
+			  box-shadow: 1px 1px 5px #999;
+			}
+			</style>
+
+			<div class="actionButton section">
+			    <button class="parent">
+			        <img class="left" src="//dummyimage.com/100" align="left">
+			        <span align="right"> Click me! </span>
+			    </button>
+			</div>
+			')
+		))	
+	})
+	
+	
+	
+	
 	# ---------------------------------------------------------------------
 	# The button for downloading the result data frame
 	output$downloadData <- downloadHandler(
@@ -833,36 +874,31 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	# Load demo data
 	observe({
 		con <- NULL
+		demo <- ""
 		switch(input$demodata,
 			"JPSP1" = {
-				demo <- readLines(con <- file("demo-data/JPSP-p-curve.txt"))
-				demo2 <- paste(demo, collapse="\n")
-				updateTextInput(session, inputId = "txt", value = demo2)
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/JPSP-p-curve.txt"))
 				},
 			"855" = {
-				#demo <- readLines(con <- file("demo-data/855_t_tests.txt"))
-				#demo2 <- paste(demo, collapse="\n")
 				updateTextInput(session, inputId = "txt", value = readFile("demo-data/855_t_tests.txt"))
 				},
 			"H0_100x5" = {
-				demo <- readLines(con <- file("demo-data/H0_100x5.txt"))
-				demo2 <- paste(demo, collapse="\n")
-				updateTextInput(session, inputId = "txt", value = demo2)
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/H0_100x5.txt"))
 			},
 			"H1_100x5" = {
-				demo <- readLines(con <- file("demo-data/H1_100x5.txt"))
-				demo2 <- paste(demo, collapse="\n")
-				updateTextInput(session, inputId = "txt", value = demo2)
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/H1_100x5.txt"))
 			},
 			"H0_hack_100x5" = {
-				demo <- readLines(con <- file("demo-data/H0_hack_100x5.txt"))
-				demo2 <- paste(demo, collapse="\n")
-				updateTextInput(session, inputId = "txt", value = demo2)
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/H0_hack_100x5.txt"))
 			},
 			"elderly" = {
-				demo <- readLines(con <- file("demo-data/elderly_priming.txt"))
-				demo2 <- paste(demo, collapse="\n")
-				updateTextInput(session, inputId = "txt", value = demo2)
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/elderly_priming.txt"))
+			},
+			"glucose" = {
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/glucose.txt"))
+			},
+			"powerposing" = {
+				updateTextInput(session, inputId = "txt", value = readFile("demo-data/powerposing.txt"))
 			}
 		)
 		if (!is.null(con)) close(con)
