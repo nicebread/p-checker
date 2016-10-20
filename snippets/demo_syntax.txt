@@ -1,5 +1,10 @@
-# GO AND REPLACE THE EXAMPLES!			  
-# Easy mode ('#' starts a comment)
+#' @title Demo data
+#' @subtitle by Slartibartfast
+#' @details Go and replace the examples in the text box! # starts a comment
+#' @url http://shinyapps.org/apps/p-checker/
+
+# Each line is one test statistic
+# Easy mode: only enter the test statistics with df
 t(47) = 2.1
 chi2(1) = 9.15
 r(77) = .47
@@ -7,7 +12,7 @@ F(1, 88) = 9.21
 p = .02
 p(48) = .018
 
-# add reported p-value; one-tailed; alpha level
+# add reported p-value; mark one-tailed; set alpha level
 t(123) = 2.54; p < .01
 Z = 1.9; one-tailed; p=.03
 r(25) = 0.21; crit=.10

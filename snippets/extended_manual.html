@@ -39,8 +39,8 @@ critical <em>p</em> value; [optional, if one-tailed testing] one-tailed
 </ul>
 
 <h3 id="sign">Sign of effects</h3>
-You can provide the sign of a test statistic (e.g., <code>t(123) = -2.8</code>). This, however, is ignored in all analyses which are currently available. R-index, TIVA, and <em>p</em>-curve only use the <em>p</em>-values and ignore the sign. The effect size tab also ignores the sign by taking the absolut effect size estimate. <br>
-Hence, by now it is implicitly assumed that all effects go into the predicted direction. If you use <em>p</em>-checker as a "pre-processing" tool for a proper meta-analysis, you should be aware of that.
+You can provide the sign of a test statistic (e.g., <code>t(123) = -2.8</code>). This, however, is ignored in R-index, TIVA, and <em>p</em>-curve, which only use the <em>p</em>-values and ignore the sign. Hence, for these analyses by now it is implicitly assumed that all effects go into the predicted direction. <br>The meta-analysis tab, in contrast, respects the sign.<br>
+
 
 
 <h3 id="special_cases">Special cases</h3>
@@ -55,4 +55,27 @@ Hence, by now it is implicitly assumed that all effects go into the predicted di
 <!-- You can provide the test statistics also in the link to this app. Copy your input text to the upper box of this <a href="http://www.freeformatter.com/url-encoder.html#ad-output">URL Encoder</a>. In the lower box, you will find a weird-looking string, such as <code>t%2847%29%3D2.1%0D%0Ar%2834%29%3D0.123%0D%0AF%281%2C+200%29%3D9.9</code>. Now you can provide that string after the link to this app, for example:<br>
 <code>http://shinyapps.org/apps/p-checker/?syntax=t%2847%29%3D2.1%0D%0Ar%2834%29%3D0.123%0D%0AF%281%2C+200%29%3D9.9</code><br> -->
 
-Go to the "Export" tab and copy the link for a reproducible analysis. This way you can share any p-value analysis in a single link!
+Copy the link below the text entry area for a reproducible analysis. This way you can share any p-value analysis in a single link!
+
+<h3 id="roxygen">Roxygen-style header for your analysis</h3>
+You can add title, subtitle, details, and an URL for your analysis in the syntax:
+<br>
+<code>
+#' @title The title of your analysis<br>
+#' @subtitle by Slartibartfast<br>
+#' @details Go and replace the examples in the text box!<br>
+#' @url http://shinyapps.org/apps/p-checker/<br>
+</code>
+
+
+<h3>Technical Details</h3>
+
+The Egger's test and PET-PEESE are implemented as:
+<br>
+<code>
+PET <- lm(d~d.se, data, weight=1/d.var)<br>
+PEESE <- lm(d~d.var, data, weight=1/d.var)<br>
+<br>
+PET <- rma(yi = d, vi = d.var, mods=d.se, method="DL")<br>
+PEESE <- rma(yi = d, vi = d.var, mods=d.var, method="DL")<br>
+</code>

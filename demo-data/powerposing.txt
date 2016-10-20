@@ -1,6 +1,9 @@
-# Data from Simmons, Joseph P. and Simonsohn, Uri, Power Posing: P-Curving the Evidence (September 26, 2016). Psychological Science, Forthcoming. Available at SSRN: http://ssrn.com/abstract=2791272
-# Data retrieved from http://datacolada.org/37 ("Main p-curve results")
-# For disclosure table about in/exclusion of effect sizes, see also there. 
+#' @title POWER POSING p-curve
+#' @subtitle by J. P. Simmons & U. Simonsohn
+#' @details Data from Simmons, J. P. & Simonsohn, U. (2016). Power Posing: P-Curving the Evidence. Psychological Science, Forthcoming. Available at SSRN: http://ssrn.com/abstract=2791272 (see "Main p-curve results").
+#' @url http://datacolada.org/37
+
+# For disclosure table about in/exclusion of effect sizes, see blog post. 
 # Thanks to @jpsimmon and @uri_sohn for sharing open data!
 
 Allen, Gervais, & Smith (2013): t(83)=2.24; one-tailed
@@ -12,7 +15,7 @@ Brinol, Petty, & Wegener (2009): F(1,67)=9.91
 Carney, Cuddy, & Yap (2010), S1: chi2(1)=4.84
 Carney, Cuddy, & Yap (2010), S2: F(1,39)=4.29
 Cesario & McDonald (2013), S1: z=1.98
-Cesario & McDonald (2013), S2: z=1.91
+Cesario & McDonald (2013), S2: z=1.91; crit=.06 # "Results indicated a clear, singular effect"
 Cuddy et al. (in press): F(1,60)=8.33
 Fischer et al. (2011), S2: t(34)=2.30
 Huang et al. (2011), S1: F(1,73)=7.08

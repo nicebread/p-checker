@@ -1,7 +1,9 @@
-# ELDERLY PRIMING
-# p-curve analysis from Lakens, Daniel (2014). Professors are not elderly: Evaluating the evidential value of two social priming effects through p-curve analyses. Available at SSRN: http://ssrn.com/abstract=2381936 or http://dx.doi.org/10.2139/ssrn.2381936 
+#' @title ELDERLY PRIMING
+#' @subtitle by D. Lakens
+#' @details p-curve analysis from Lakens, D. (2014). Professors are not elderly: Evaluating the evidential value of two social priming effects through p-curve analyses. Available at SSRN: http://ssrn.com/abstract=2381936 or http://dx.doi.org/10.2139/ssrn.2381936
+#' @url https://osf.io/3urp2/
 
-# Test statistics kindly provided by Daniel Lakens at  https://osf.io/3urp2/
+# Test statistics kindly provided by Daniel Lakens at https://osf.io/3urp2/
 
 A&D (2002) S1: F(1, 102) = 4.95; p < .03
 A&D (2002) S1: F(1, 102) = 4.29; p < .05

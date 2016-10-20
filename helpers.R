@@ -50,9 +50,13 @@ decimalplaces <- function(x) {
 
 decplaces <- function(x) {nchar(str_extract(x, "\\.\\d*$"))-1}
 
-
-
 clamp <- function(x, MIN=.00001, MAX=.99999) {x[x<MIN] <- MIN; x[x>MAX] <- MAX; x}
+
+str_match_empty <- function(..., position=2) {
+	res <- str_match(...)[position]
+	if (is.na(res)) res <- ""
+	res
+}
 
 logScaleHack <- function(v){
   isNotPowOf10 <- (log(v, 10) %% 1) != 0
@@ -105,4 +109,40 @@ logScaleLimits <- function(v)
   }
   
   results * (10^exponents)
+}
+
+
+
+# ---------------------------------------------------------------------
+# Meta-Regression helper functions
+
+tidyRMA <- function(RMA) {
+	res <- data.frame(
+			  term = if(length(RMA$b)==1) {"b0"} else {c("b0", "b1")},
+			  estimate = as.vector(RMA$b),
+			  std.error = RMA$se,
+			  statistic = RMA$zval,
+			  p.value = RMA$pval,
+			  conf.low = RMA$ci.lb,
+			  conf.high = RMA$ci.ub
+			)
+	rownames(res) <- NULL
+	return(res)
+}
+
+tidyLM <- function(...) {
+	res <- tidy(..., conf.int=TRUE)
+	res$term[res$term == "(Intercept)"] <- "b0"
+	res$term[res$term == "d.se"] <- "b1"
+	res$term[res$term == "d.var"] <- "b1"
+	return(res)
+}
+
+# this function combines tidyRMA and tidyLM
+tidyMR <- function(x) {
+	if (class(x)[1] == "lm") {
+		return(tidyLM(x))
+	} else {
+		return(tidyRMA(x))
+	}
 }
