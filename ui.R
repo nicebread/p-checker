@@ -2,7 +2,7 @@ library(shiny)
 library(shinyjs)
 library(shinythemes)
 library(shinyBS) # Additional Bootstrap Controls
-library(ggvis)
+#library(ggvis)
 
 # Load the panels with the manual etc.
 source("pancollapse.R")

@@ -715,7 +715,8 @@ shinyServer(function(input, output, session) {
 		  # Begg & Mazumdar Rank correlation test for publication bias; only if k>2
 		  if (k > 2) {
 			  suppressWarnings({
-				  Begg <- cor.test(TBL$n.approx, TBL$g, use="p", method="kendall")
+				  #Begg <- cor.test(TBL$n.approx, TBL$g, use="p", method="kendall")
+				  Begg <- NULL
 			  })
 		  } else {
 		  	Begg <- NULL
