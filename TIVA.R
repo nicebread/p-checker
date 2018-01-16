@@ -15,6 +15,3 @@ TIVA <- function (p.values, log.p=FALSE) {
 	chi.p  <- pchisq(chi.square, df=df, lower.tail = TRUE)
 	data.frame(var.z=var.z, chi2=chi.square, df=df, p.value=chi.p)
 }
-
-
-TIVA(ps, log.p=FALSE)
