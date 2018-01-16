@@ -395,7 +395,7 @@ parse_ES <- function(txt, round_up = FALSE) {
 	# compute within effect size
 	BIG[WS_design, D] <- (BIG[WS_design, STAT] / sqrt(BIG[WS_design, N.APPROX])) * BIG[WS_design, SIGN]
 	
-	BIG[WS_design | BS_design, G] <- BIG[WS_design, D] * ( 1- (3/(4 * BIG[WS_design, N.APPROX] - 1)))
+	BIG[indices_t, G] <- BIG[indices_t, D] * ( 1- (3/(4 * BIG[indices_t, N.APPROX] - 1)))
     
 	#BIG[indices_t, D.VAR] <- 4/BIG[indices_t, N.APPROX] + BIG[indices_t, D]^2 / (2*BIG[indices_t, N.APPROX])
 	BIG[indices_t, D.VAR] <- (4 + BIG[indices_t, D]^2) / BIG[indices_t, N.APPROX]
@@ -644,10 +644,14 @@ parse_ES <- function(txt, round_up = FALSE) {
 }
 
 
-(p <- parse_ES("t(47, 4)=2.1"))
-(p <- parse_ES("t(47, 4)=2.1; BS"))
-(p <- parse_ES("t(47, 4)=2.1; WS"))
-
-(p <- parse_ES("F(1, 47)=4.41"))
-(p <- parse_ES("F(1, 47)=4.41; BS"))
-(p <- parse_ES("F(1, 47)=4.41; WS"))
+parse_ES("t(72) = 4.80; BS
+t(72) = 4.80; WS
+t(72) = 5.80; WS")
+#
+# (p <- parse_ES("t(47, 4)=2.1"))
+# (p <- parse_ES("t(47, 4)=2.1; BS"))
+# (p <- parse_ES("t(47, 4)=2.1; WS"))
+#
+# (p <- parse_ES("F(1, 47)=4.41"))
+# (p <- parse_ES("F(1, 47)=4.41; BS"))
+# (p <- parse_ES("F(1, 47)=4.41; WS"))

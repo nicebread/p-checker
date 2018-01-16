@@ -12,8 +12,8 @@ library(broom)
 source("pancollapse.R")
 source("fasterParser.R")
 source("p-curve.R")
-source("TIVA.R")
 source("helpers.R")
+source("TIVA.R")
 
 
 #input <- list(round_up=FALSE, digits=3, group_by_paper=TRUE, only_first_ES=TRUE, txt=x, pcurve_power=33, pcurve_crit=.05, experimental=FALSE); dat <- list()
@@ -112,6 +112,7 @@ shinyServer(function(input, output, session) {
 		# ---------------------------------------------------------------------
 		# R-index computations
 		
+		#  -log(2) divides the p-value by two on the log scale
 		tbl$Z <- qnorm(tbl$p.value.log - log(2), lower.tail = FALSE, log.p=TRUE)
 		tbl$obs.pow <- pnorm(tbl$Z-qnorm(1-tbl$p.crit/2))
 		
@@ -365,7 +366,8 @@ shinyServer(function(input, output, session) {
 			inflation_rate <- success_rate - obs_power
 			r_index <- obs_power - inflation_rate
 		
-			tiva <- TIVA(tbl$p.value.log, log.p=TRUE)
+			# run TIVA with one-tailed p-values (see email from Aurelien)
+			tiva <- TIVA(tbl$p.value.log - log(2), log.p=TRUE)
 			
 			result <- paste0(
 				"<h3>R-Index analysis:</h3><h4>",
@@ -459,7 +461,8 @@ shinyServer(function(input, output, session) {
 
 		# One TIVA analysis across all ES
 		if (input$group_by_paper == FALSE) {
-			tiva <- TIVA(tbl$p.value.log, log.p=TRUE)
+			# - log(2): use one-tailed p-values for TIVA
+			tiva <- TIVA(tbl$p.value.log - log(2), log.p=TRUE)
 
 			result <- paste0(
 				"<h3>Test of insufficient variance (TIVA):</h3>",
@@ -681,6 +684,10 @@ shinyServer(function(input, output, session) {
 		js$browseURL(pcurve_link)
     })
 	
+	
+	
+	
+	
 	# ---------------------------------------------------------------------
 	# Effect size panel	
 	
@@ -706,7 +713,8 @@ shinyServer(function(input, output, session) {
 			
 			#ES_plot <- ggplot(TBL, aes(x=n.approx, y=abs(g.abs))) + geom_point() + xlab("Approximate n (log scale)") + ylab("Absolute Hedge's g") + geom_smooth(method=lm) + scale_x_log10(breaks=round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)))
 			
-			ES_table <- dat$tblDisplay %>% filter(g != "NA", n.approx != "NA") %>% select(paper_id, study_id, type, df1, df2, statistic, p.value, n.approx, d, g, d.var, d.se)			
+		
+			ES_table <- dat$tblDisplay %>% filter(g != "NA", n.approx != "NA") %>% select(paper_id, study_id, type, df1, df2, statistic, p.value, n.approx, d, g, d.var, d.se, studydesign)			
 		  })
 		  
 		  
@@ -734,8 +742,8 @@ shinyServer(function(input, output, session) {
 		  PEESE <- PEESE.lm <- lm(d~d.var, data=TBL, weight=1/TBL$d.var)
 
 		  if (input$MR_model == "rma") {
-			  PET <- rma(yi = TBL$d, vi = TBL$d.var, mods=TBL$d.se, method="DL")
-			  PEESE <- rma(yi = TBL$d, vi = TBL$d.var, mods=TBL$d.var, method="DL")  
+			  PET <- rma(yi = TBL$d, vi = TBL$d.var, mods=TBL$d.se, method="REML")
+			  PEESE <- rma(yi = TBL$d, vi = TBL$d.var, mods=TBL$d.var, method="REML")  
 		  }
 		  
 		  PETPEESE <- rbind(
@@ -743,13 +751,10 @@ shinyServer(function(input, output, session) {
 				data.frame(method="PEESE", tidyMR(PEESE))
 		 )		
 		 
-		 print(PETPEESE)		  
-		  
 		  # conditional PET/PEESE estimator
-		  #the one-tail version that Stanley privately advocated. Not mentioned in publications. Use two-tailed (below) instead.
+		  #the one-tail version that Stanley advocates: 
 
-		  #the two-tail version
-		  usePET <- ifelse(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["p.value"]] > .05, TRUE, FALSE)
+		  usePET <- ifelse(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["p.value"]] > .10, TRUE, FALSE)
 		  PETPEESE <- rbind(PETPEESE, 
 				data.frame(method="PETPEESE", if (usePET == TRUE) {tidyMR(PET)} else {tidyMR(PEESE)})
 		  )
@@ -758,8 +763,8 @@ shinyServer(function(input, output, session) {
 		  PET.slope <- PETPEESE %>% filter(method == "PET", term == "b1") %>% .[["estimate"]]
 		  PEESE.est <- PETPEESE %>% filter(method == "PEESE", term == "b0") %>% .[["estimate"]]
 		  PET_PEESE.est <- PETPEESE %>% filter(method == "PETPEESE", term == "b0") %>% .[["estimate"]]
-		  PET_PEESE.text <- ifelse(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["p.value"]] > .05,
-		  		"As the PET intercept does not significantly differ from zero (p > .05), it is recommended to use the PET estimator.", "As the PET intercept does significantly differ from zero (p < .05), it is recommended to use the PEESE estimator.")
+		  PET_PEESE.text <- ifelse(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["p.value"]] > .10,
+		  		"As the PET intercept does not significantly differ from zero (p > .10), it is recommended to use the PET estimator.", "As the PET intercept does significantly differ from zero (p < .10), it is recommended to use the PEESE estimator.")
 
 			return(list(
 				renderPlot({
@@ -809,7 +814,7 @@ shinyServer(function(input, output, session) {
 					The intercept of the PET meta-regression is b0 = ", round(PET.est, 2), ", t(", summary(PET.lm)$df[2], ") = ", 
 					round(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["statistic"]], 3), "; ", 
 					p0(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["p.value"]]),
-					"<br>A significant PET intercept with p < .05 indicates a bias corrected effect != 0. 
+					"<br>A significant PET intercept with p < .10 indicates a bias corrected effect != 0. 
 					The estimated true effect size is ", round(PET.est, 2), ", 95% CI [", 
 					round(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["conf.low"]], 3), "; ",
 					round(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["conf.high"]], 3), "]."
@@ -897,7 +902,7 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	
 	
 	# ---------------------------------------------------------------------
-	# Research style panel	(not implemented yet)
+	# Research style panel (not implemented yet)
 	
 	output$researchstyle <- renderUI({
 		if (nrow(dat$tbl) > 0) {			

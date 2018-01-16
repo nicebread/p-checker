@@ -130,7 +130,8 @@ shinyUI(tagList(
   					HTML('<small>For information about R-Index, see <a href="http://www.r-index.org/">http://www.r-index.org/</a>.</small>'),
   					htmlOutput("rindex_table")
   				),
-  				tabPanel("TIVA",					
+  				tabPanel("TIVA",			
+					alert.create('The TIVA test expects that all entered test statistics/p-values are in the expected direction (regardless of the sign). Please delete or comment out all rows with results in the "wrong" direction.'),		
   					htmlOutput("tiva_summary"),
   					conditionalPanel(
   						condition = "input.group_by_paper == 1",
