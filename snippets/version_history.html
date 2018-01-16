@@ -1,0 +1,78 @@
+<h2>Release notes / Version history</h2>
+
+<h4>Version 0.7 (2018-01-15)</h4>
+
+Changes:
+<br/>
+<ul>
+<li>
+Added PET-PEESE and Egger's test. Renamed tab to "Meta-Analysis".
+PLEASE read the disclaimer on top of the meta-analysis tab: <i>The test statistics are converted to Cohen's d wherever possible, based on the formulas provided by Borenstein, Hedges, Higgins, & Rothstein (2011). <b>Warning:</b> These effect size conversions are based on approximative formulas; furthermore the app always assumes equal cell sizes and other simplifications. Although these proxies work good under many conditions, this quick meta-analytic overview cannot replace a proper meta-analysis! For the same reasons, the results here might slightly differ from published results from a proper meta-analysis.</i><br>
+You should rather see this as a quick prototyping/screening tool.
+</li>
+<li>
+Fixed some signs and one-tailed stats in the glucose demo data.
+</li>
+<li>
+Removed "Export" tab (the export link now is below the text entry field on the left side).
+</li>
+<li>
+Slightly updated design
+</li>
+<li>
+Fixed a bug in TIVA: p-values are now one-tailed (as it should be). Thanks to Aurelien Allard and Katie Corker for reporting the bug.
+</li>
+</ul>
+
+<h4>Version 0.6.2 (2016-10-04)</h4>
+
+Changes:
+<br/>
+<ul>
+<li>
+	Changed TIVA computation to log(p), which allows much smaller p-values (thanks to Rickard Carlsson @RickCarlsson for pointing out the bug).
+</li>
+<li>
+	Added power posing p-curve data from Joe Simmons and Uri Simonsohn (see <a href="http://datacolada.org/37">http://datacolada.org/37</a>)
+</li>
+</ul>
+
+<h4>Version 0.6.1 (2016-06-14)</h4>
+
+Changes:
+<br/>
+<ul>
+<li>New "test statistic": You can now directly enter p-values (optionally with df in parentheses), based on a suggestion by Roger Giner-Sorolla. If df are provided, an effect size is computed based on a approximative conversion formula by (see <a href="https://books.google.de/books?id=GC42CwAAQBAJ&pg=PA100&lpg=PA100&dq=meta-analysis+convert+chi2+to+d+degrees+of+freedom&source=bl&ots=_c4EHEyRis&sig=yIaUDAbQ3RfPvLTfEE7-thpEXys&hl=de&sa=X&ved=0ahUKEwiyp-XntdnLAhWipnIKHab5CaA4ChDoAQhfMAg#v=onepage&q=meta-analysis%20convert%20chi2%20to%20d%20degrees%20of%20freedom&f=false">here</a>).
+	<br>Examples:</li>
+	<ul>		
+	<li>p=.034</li>
+	<li>p(48)=.024</li>
+	</ul>
+</ul>
+
+
+<h4>Version 0.6 (2016-02-22)</h4>
+
+Changes:
+<br/>
+<ul>
+<li>Added 33% (or other) theoretical p-curve in plot</li>
+<li>Moved comparison-power-slider to standard controls</li>
+</ul>
+
+
+<h4>Version 0.5  (2016-02-15)</h4>
+
+Changes:
+<br/>
+<ul>
+<li>Included Begg's test for publication bias</li>
+<li>Fixed bug in effect size plot</li>
+<li>"Send to p-curve" now links to app4</li>
+<li>Much improved parser (at least 100x faster)</li>
+</ul>
+
+<h3>Known issues:</h3>
+<ul>
+<li>TODO code clean-up: Clearly separate the inference functions from UI functions</li>
+</ul>

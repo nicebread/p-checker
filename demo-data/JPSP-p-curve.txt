@@ -1,6 +1,8 @@
-## Analysis of (presumably) non-hacked JPSP test statistics; retrieved from http://www.p-curve.com/Supplement/full_pdt.xlsx
-# See also http://www.p-curve.com/
-# See also Simonsohn, U., Nelson, L. D., & Simmons, J. P. (2014). P-curve: A key to the file-drawer. <i>Journal of Experimental Psychology: General, 143</i>, 534–547, Figure 3B.
+#' @title Analysis of (presumably) non-hacked JPSP test statistics
+#' @subtitle by Simonsohn, Nelson, & Simmons
+#' @details See also Simonsohn, U., Nelson, L. D., & Simmons, J. P. (2014). P-curve: A key to the file-drawer. <i>Journal of Experimental Psychology: General, 143</i>, 534–547, Figure 3B.
+#' @url http://www.p-curve.com/Supplement/full_pdt.xlsx
+
 # To replicate the results of the paper, deselect "Gracious rounding up" and deselect "Make p-curve robust to outliers".
 
 F(1,57)=7.25; p=0.0093

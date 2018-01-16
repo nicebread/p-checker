@@ -1,0 +1,87 @@
+#' @title Glucose Model of Ego Depletion
+#' @subtitle by M. Vadillo et al.
+#' @details Vadillo, M. A., Hardwicke, T. E., & Shanks, D. R. (2016). Selection bias, vote counting, and money-priming effects: A comment on Rohrer, Pashler, and Harris (2015) and Vohs (2015). Journal of Experimental Psychology: General, 145(5), 655–663. http://doi.org/10.1037/xge0000157. <b>Note</b>: The results slightly differ from the paper, as these analyses are based on the p-curve disclosure table, which contains a slightly different ES selection than the meta-analyses reported in the paper.
+#' @url https://osf.io/4e3gy
+
+# For disclosure table about in/exclusion of effect sizes, see the link. 
+# Thanks to @mavadillo for sharing open data!
+
+# Vohs et al. + Caruso et al.
+t(28) = 2.12
+t(166) = 2.81
+t(78) = 2.24
+F(1, 271) = 14.63
+F(1, 88) = 6.93
+F(2,49) = 3.73
+t(35) = 2.03
+t(37) = 2.06
+t(42) = 2.13
+F(2, 32) = 4.34
+t(38) = 2.13
+t(33) = 2.37
+F(2, 58) = 4.04
+Chi2(2) = 10.10
+
+# robustness
+F(1, 271) = 10.22
+t(33) = 2.30
+
+
+# Table 1 in Vohs et al.
+
+F (1,76) = 4.81
+F(1,49)=4.18
+F(1, 37)=6.63
+t(66) = 3.15
+t(88) = 2.99
+F(2, 308) = 4.08
+F(2, 84) = 10.02
+F(1, 86) = 4.86
+F(1, 80)=4.39
+F(1, 92)=5.49
+
+
+# replication studies: Rohrer et al. + ManyLabs 1
+
+t(82) = -0.03
+t(118) = 0.96
+t(82) = -0.67
+t(93) = 1.12
+t(94) = 0.06
+t(100) = -1.19
+t(88) = 0.04
+t(172) = 0.77
+t(111) = 0.67
+t(110) = -0.74
+t(275) = -1.35
+t(143) = -0.41
+t(92) = 2
+t(83) = 0.9
+t(997) = -1.02
+t(105) = 0.49
+t(120) = 0.2
+t(1324) = -0.51
+t(93) = 0.07
+t(100) = 0.15
+t(83) = 0.61
+t(160) = -1.37
+t(77) = 0.92
+t(167) = -0.77
+t(185) = -1.09
+t(85) = -1.22
+t(223) = 1.33
+t(78) = 0.94
+t(125) = -0.84
+t(140) = -0.17
+t(79) = 1.33
+t(105) = -0.29
+t(94) = -1
+t(101) = 0.87
+t(88) = 1.14
+t(85) = -0.88
+t(134) = -0.43
+t(418) = 0.58
+t(210) = 0.0
+t(189) = 1.70
+t(154) = -0.36
+t(114) = 0.76

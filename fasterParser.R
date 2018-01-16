@@ -1,3 +1,8 @@
+## ======================================================================
+## This is a much faster version of the oldParser.R
+## Code by Tobias Kächele & Felix Schönbrodt
+## ======================================================================
+
 library(stringi)
 library(dplyr)
 
@@ -47,8 +52,9 @@ parse_ES <- function(txt, round_up = FALSE) {
     return(NULL)
   }
   
-  # allocate space for error messages
+  # allocate space for error and warning messages
   errors <- rep("", nlines)
+  warning <- rep("", nlines)
 
   # definition of all column names of output matrix
   TYPE            <-  1
@@ -81,9 +87,11 @@ parse_ES <- function(txt, round_up = FALSE) {
   D.REPORTED.ERROR  <- 28
   REPORTING.ERROR <- 29
   P.VALUE.LOG       <- 30
+  D.VAR       <- 31
+  STUDYDESIGN <- 32
 
   # output matrix for all data in numeric form
-  BIG <- matrix(NA, nrow = nlines, ncol = 30)
+  BIG <- matrix(NA, nrow = nlines, ncol = 32)
 
   # find study labels and extract them (everything before ":")
   extraction <- stri_match_first_regex(txt.lines, '^ *(.*?) *(?:(?<=\\)) *(.+?) *)?: *')
@@ -223,6 +231,22 @@ parse_ES <- function(txt, round_up = FALSE) {
   if( length(indices_one_tailed)) {
     txt.lines.edited[indices_one_tailed] <- stri_replace_first_fixed(txt.lines.edited[indices_one_tailed], extraction[indices_one_tailed,1], ' ')
   }
+  
+  
+  # ---------------------------------------------------------------------
+  #  find study design for t-values: between subjects (BS) or within-subjects (WS)?
+  extraction <- stri_match_first_regex(txt.lines.edited, ' *\\b(BS|WS)\\b[ ,;]*', case_insensitive=TRUE)
+  
+  BIG[,STUDYDESIGN] <- as.numeric(factor(extraction[,2], levels=c("BS", "WS")))
+  indices_T_BS <- which(BIG[,STUDYDESIGN] == 1)
+  indices_T_WS <- which(BIG[,STUDYDESIGN] == 2)
+  if( length(indices_T_BS)) {
+    txt.lines.edited[indices_T_BS] <- stri_replace_first_fixed(txt.lines.edited[indices_T_BS], extraction[indices_T_BS,1], ' ')
+  }
+  if( length(indices_T_WS)) {
+    txt.lines.edited[indices_T_WS] <- stri_replace_first_fixed(txt.lines.edited[indices_T_WS], extraction[indices_T_WS,1], ' ')
+  }
+  
 
   # find Cohen's d with and without CI/SE and extract it
   extraction <- stri_match_first_regex(txt.lines.edited, ' *\\bd *= *(-)?0*((?:\\d*\\.)?\\d+) *(?:\\[ *(-?(?:\\d*\\.)?\\d+) *[,;] *(-?(?:\\d*\\.)?\\d+) *\\]|[,; ]*se *= *((?:\\d*\\.)?\\d+))?[ ,;]*', case_insensitive=TRUE)
@@ -287,7 +311,6 @@ parse_ES <- function(txt, round_up = FALSE) {
     BIG[indices_cohens_d_neg, D.REPORTED] <- -BIG[indices_cohens_d_neg, D.REPORTED]
   }
 
-  # make Cohen's d (and positive
 
   # trim rest which couldn't be parsed
   txt.lines.edited <- stri_trim_both(txt.lines.edited)
@@ -302,7 +325,9 @@ parse_ES <- function(txt, round_up = FALSE) {
   BIG[indices_crit_na, CRIT.VALUE] <- ifelse(BIG[indices_crit_na, ONE.TAILED], .10, .05)
 
 
-  # error detection / define error messages
+  # ---------------------------------------------------------------------
+  #  error detection / define error messages
+  
   indices_df1_missing <- which((is_t | is_chi2 | is_r) & !has_df1)
   if(length(indices_df1_missing))
     errors[indices_df1_missing] <- paste0(errors[indices_df1_missing], "\nStatistic needs specification of df!")
@@ -346,6 +371,10 @@ parse_ES <- function(txt, round_up = FALSE) {
   indices_crit_out_of_bounds <- which(BIG[,CRIT.VALUE] > 1)
   if(length(indices_crit_out_of_bounds))
     errors[indices_crit_out_of_bounds] <- paste0(errors[indices_crit_out_of_bounds], "\nCritical value must be less or equal 1!")
+  
+  indices_tF_without_design <- which((is_t | is_f) & is.na(BIG[,STUDYDESIGN]))
+  if(length(indices_tF_without_design))
+    warning[indices_tF_without_design] <- paste0(warning[indices_tF_without_design], "\nWarning: t- or F-value is reported without design. <i>Effect size computations assume a <u>between-subject</u> design!</i> Add \"; BS\" for between subject design; add \"; WS\" for within subject design)")
 
 
   # compute t-statistic
@@ -354,9 +383,22 @@ parse_ES <- function(txt, round_up = FALSE) {
     BIG[indices_t, P.VALUE] <- pt(BIG[indices_t, STAT], BIG[indices_t, DF1], lower.tail=FALSE) * 2
 	BIG[indices_t, P.VALUE.LOG] <- pt(BIG[indices_t, STAT], BIG[indices_t, DF1], lower.tail=FALSE, log.p = TRUE) + log(2)
 	
-    BIG[indices_t, D] <- (2*BIG[indices_t, STAT] / sqrt(BIG[indices_t, DF1])) * BIG[indices_t, SIGN]
-    BIG[indices_t, G] <- BIG[indices_t, D] * ( 1- (3/(4 * BIG[indices_t, DF1] - 1)))
     BIG[indices_t, N.APPROX] <- BIG[indices_t, DF1] + 2
+	
+	# Which studies are between-SS, which within-SS?
+	BS_design <- which(BIG[,TYPE] == TYPE_T & (BIG[,STUDYDESIGN] == 1 | is.na(BIG[,STUDYDESIGN])))
+	WS_design <- which(BIG[,TYPE] == TYPE_T & BIG[,STUDYDESIGN] == 2)
+	
+	# compute between effect size
+	BIG[BS_design, D] <- (2*BIG[BS_design, STAT] / sqrt(BIG[BS_design, N.APPROX])) * BIG[BS_design, SIGN]
+	
+	# compute within effect size
+	BIG[WS_design, D] <- (BIG[WS_design, STAT] / sqrt(BIG[WS_design, N.APPROX])) * BIG[WS_design, SIGN]
+	
+	BIG[indices_t, G] <- BIG[indices_t, D] * ( 1- (3/(4 * BIG[indices_t, N.APPROX] - 1)))
+    
+	#BIG[indices_t, D.VAR] <- 4/BIG[indices_t, N.APPROX] + BIG[indices_t, D]^2 / (2*BIG[indices_t, N.APPROX])
+	BIG[indices_t, D.VAR] <- (4 + BIG[indices_t, D]^2) / BIG[indices_t, N.APPROX]
   }
 
   # compute pearson's r
@@ -369,6 +411,9 @@ parse_ES <- function(txt, round_up = FALSE) {
     BIG[indices_r, D] <- BIG[indices_r, SIGN] * (2 * BIG[indices_r, STAT]) / sqrt(1 - BIG[indices_r, STAT]^2)
     BIG[indices_r, G] <- BIG[indices_r, D] * (1 - (3 / (4 * BIG[indices_r, DF1] - 1)))
     BIG[indices_r, N.APPROX] <- BIG[indices_r, DF1] + 2
+
+	var.r <- (1 - BIG[indices_r, STAT]^2)^2/(BIG[indices_r, N.APPROX] - 1)
+	BIG[indices_r, D.VAR] <-  4 * var.r/(1 - BIG[indices_r, STAT]^2)^3
   }
 
   # compute f-statistic
@@ -377,13 +422,26 @@ parse_ES <- function(txt, round_up = FALSE) {
     indices_f_df1_is_1 <- which(BIG[,TYPE] == 3 & BIG[,DF1] == 1)
     if(length(indices_f_df1_is_1))
     {
-      BIG[indices_f_df1_is_1, P.VALUE] <- sqrt(BIG[indices_f_df1_is_1, STAT])
-      BIG[indices_f_df1_is_1, D] <- 2 * BIG[indices_f_df1_is_1, P.VALUE] / sqrt(BIG[indices_f_df1_is_1, DF2])
-      BIG[indices_f_df1_is_1, G] <- BIG[indices_f_df1_is_1, D] * (1 - (3/(4 * BIG[indices_f_df1_is_1, DF2] - 1)))
       BIG[indices_f_df1_is_1, N.APPROX] <- BIG[indices_f_df1_is_1, DF2] + 2
+	  
+  	  # Which studies are between-SS, which within-SS?
+  	  BS_design <- which(BIG[,TYPE] == TYPE_F & BIG[,DF1] == 1 & (BIG[,STUDYDESIGN] == 1 | is.na(BIG[,STUDYDESIGN])))
+  	  WS_design <- which(BIG[,TYPE] == TYPE_F & BIG[,DF1] == 1 & BIG[,STUDYDESIGN] == 2)
+	  
+  	  # compute between effect size
+  	  BIG[BS_design, D] <- (2*sqrt(BIG[BS_design, STAT]) / sqrt(BIG[BS_design, N.APPROX])) * BIG[BS_design, SIGN]
+	  
+  	  # compute within effect size
+  	  BIG[WS_design, D] <- sqrt(BIG[WS_design, STAT] /BIG[WS_design, N.APPROX]) * BIG[WS_design, SIGN]
+
+      BIG[indices_f_df1_is_1, G] <- BIG[indices_f_df1_is_1, D] * ( 1- (3/(4 * BIG[indices_f_df1_is_1, N.APPROX] - 1)))
+	  
+	  #BIG[indices_f_df1_is_1, D.VAR] <- 4/BIG[indices_f_df1_is_1, N.APPROX] + BIG[indices_f_df1_is_1, D]^2 / (2*BIG[indices_f_df1_is_1, N.APPROX])
+	  BIG[indices_f_df1_is_1, D.VAR] <- (4 + BIG[indices_f_df1_is_1, D]^2) / BIG[indices_f_df1_is_1, N.APPROX]
     }
-    BIG[indices_f, P.VALUE] <- pf(BIG[indices_f, STAT], BIG[indices_f, DF1], BIG[indices_f, DF2], lower.tail=FALSE)
+	
 	BIG[indices_f, P.VALUE.LOG] <- pf(BIG[indices_f, STAT], BIG[indices_f, DF1], BIG[indices_f, DF2], lower.tail=FALSE, log.p = TRUE)
+	BIG[indices_f, P.VALUE] <- exp(BIG[indices_f, P.VALUE.LOG])
   }
 
   # compute z-value
@@ -434,9 +492,11 @@ parse_ES <- function(txt, round_up = FALSE) {
 		
 	# conversion formula for converting p to d, see: https://books.google.de/books?id=GC42CwAAQBAJ&pg=PA100&lpg=PA100&dq=meta-analysis+convert+chi2+to+d+degrees+of+freedom&source=bl&ots=_c4EHEyRis&sig=yIaUDAbQ3RfPvLTfEE7-thpEXys&hl=de&sa=X&ved=0ahUKEwiyp-XntdnLAhWipnIKHab5CaA4ChDoAQhfMAg#v=onepage&q=meta-analysis%20convert%20chi2%20to%20d%20degrees%20of%20freedom&f=false
 	
-	  d <- (qnorm(1-(BIG[indices_pdirect_df_exists, STAT]/2))*2)/sqrt(BIG[indices_pdirect_df_exists, DF1])
+  	  BIG[indices_pdirect_df_exists, N.APPROX] <- BIG[indices_pdirect_df_exists, DF1]+2
+	
+	  d <- (qnorm(1-(BIG[indices_pdirect_df_exists, STAT]/2))*2)/sqrt(BIG[indices_pdirect_df_exists, N.APPROX])
       BIG[indices_pdirect_df_exists, D] <- d * BIG[indices_pdirect_df_exists, SIGN]
-	  BIG[indices_pdirect_df_exists, N.APPROX] <- BIG[indices_pdirect_df_exists, DF1]+2
+	  
       BIG[indices_pdirect_df_exists, G] <- BIG[indices_pdirect_df_exists, D] * (1 - (3 / (4 * BIG[indices_pdirect_df_exists, N.APPROX] - 1)))
     }
   }
@@ -490,19 +550,43 @@ parse_ES <- function(txt, round_up = FALSE) {
   }
 
  
+  # ---------------------------------------------------------------------
+  # Bring errors into a nice shape
+  
   # find indices of lines with and without error
   has_no_error <- stri_isempty(errors)
   indices_no_error <- which(has_no_error)
   indices_error    <- which(!has_no_error)
 
   # produce error message
-  warnings <- NULL
+  ERRORS <- NULL
   if(length(indices_error)) {
-    warnings <- matrix(
+    ERRORS <- matrix(
       c(
         as.character(indices_not_empty[indices_error]),
         txt.lines[indices_error],
         errors[indices_error]
+      ),
+      ncol=3
+    )
+  }
+  
+  # ---------------------------------------------------------------------
+  # Bring warnings into a nice shape
+  
+  # find indices of lines with and without error
+  has_no_warning <- stri_isempty(warning)
+  indices_no_warning <- which(has_no_warning)
+  indices_warning    <- which(!has_no_warning)
+
+  # produce warning message
+  WARNINGS <- NULL
+  if(length(indices_warning)) {
+    WARNINGS <- matrix(
+      c(
+        as.character(indices_not_empty[indices_warning]),
+        txt.lines[indices_warning],
+        warning[indices_warning]
       ),
       ncol=3
     )
@@ -544,12 +628,30 @@ parse_ES <- function(txt, round_up = FALSE) {
     d.reported.error.direction = d.reported.error.direction,
     global.reporting.error = global.reporting.error,
 	p.value.log	= BIG[,P.VALUE.LOG],
+	d.var = BIG[, D.VAR],
+	d.se = sqrt(BIG[, D.VAR]),
+	studydesign = BIG[, STUDYDESIGN],
     stringsAsFactors = FALSE
   )
 
+
   # add attribute warnings to object "res"
-  attr(res, 'warnings') <- warnings
+  attr(res, 'ERRORS') <- ERRORS
+  attr(res, 'WARNINGS') <- WARNINGS
 
   # return data.frame
   return(res)
 }
+
+
+parse_ES("t(72) = 4.80; BS
+t(72) = 4.80; WS
+t(72) = 5.80; WS")
+#
+# (p <- parse_ES("t(47, 4)=2.1"))
+# (p <- parse_ES("t(47, 4)=2.1; BS"))
+# (p <- parse_ES("t(47, 4)=2.1; WS"))
+#
+# (p <- parse_ES("F(1, 47)=4.41"))
+# (p <- parse_ES("F(1, 47)=4.41; BS"))
+# (p <- parse_ES("F(1, 47)=4.41; WS"))

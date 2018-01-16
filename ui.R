@@ -2,7 +2,7 @@ library(shiny)
 library(shinyjs)
 library(shinythemes)
 library(shinyBS) # Additional Bootstrap Controls
-library(ggvis)
+#library(ggvis)
 
 # Load the panels with the manual etc.
 source("pancollapse.R")
@@ -22,20 +22,23 @@ shinyUI(tagList(
   		# The actual app ...
   		HTML("<h2><strong><i>p</i>-checker</strong> The one-for-all <i>p</i>-value analyzer</h2>"),
   		fluidRow(
-  		column(width=4,
-  			
+		
+  		column(width=5,  		
+		div(id="leftCol",	
+			
+				h3("Enter test statistics here:"),
   				# the syntax input text field is constructed by ther server.R
   				uiOutput("syntax"),
   				br(),
   				downloadButton('downloadData','Save input as CSV file', class="btn-sm"),
+				uiOutput("exportlink"),
   				
   				tags$hr(),
   				tags$h3("Test-specific options"),
   				
-  				checkboxInput("group_by_paper", "Group results by paper", FALSE),
-  				
   				conditionalPanel(
-  					condition = "input.tabs1 == 'p-Curve' | input.tabs1 == 'R-Index' | input.tabs1 == 'TIVA'",
+  					condition = "input.tabs1 == 'p-Curve' | input.tabs1 == 'Excess Significance' | input.tabs1 == 'TIVA'",
+					checkboxInput("group_by_paper", "Group results by paper", FALSE),
   					checkboxInput("only_first_ES", "Only use first test statistic of each study", FALSE),
   					helpText("Usually, only one effect size should be extracted for each sample. Manually choose the focal effect size, or use this checkbox to only include only the first ES of each study.")
   				),
@@ -50,12 +53,13 @@ shinyUI(tagList(
   				),
   				
   				conditionalPanel(
-  					condition = "input.tabs1 == 'Meta-analysis (beta)'",
-  					selectInput('meta_ES_type','Test type for meta analysis:', c(
-  						"t test (one group)"="ttest_1",
-  						"t test (two group) & F test (1 df)"="ttest_2",
-  						"Correlation"="cor"
-  					), selected="ttest_2")
+  					condition = "input.tabs1 == 'Meta-analysis'",
+  					checkboxInput("show_PET", "Show PET meta-regression in plot", TRUE),
+					checkboxInput("show_PEESE", "Show PEESE meta-regression in plot", TRUE),
+	  				selectInput('MR_model','Meta-regression model', c(
+						"Using the lm() function"="lm",
+						"Using the rma() function"="rma"
+	  				), width="100%")
   				),
   				
   				conditionalPanel(
@@ -64,7 +68,7 @@ shinyUI(tagList(
   				),
   				
   				conditionalPanel(
-  					condition = "input.tabs1 == 'R-Index'",
+  					condition = "input.tabs1 == 'Excess Significance'",
   					checkboxInput("omit_nearly_significant", "Omit 'nearly significant' p-values (range: see below) from R-Index analysis.", FALSE),
   					sliderInput("omit_nearly_significant_range", "Range of 'nearly significant'", min=.0, max=.20, value=c(.05, .10), step=.005)
   				),
@@ -92,22 +96,26 @@ shinyUI(tagList(
   				br(),
   				checkboxInput("experimental", "Activate experimental options (Do not run actual analyses with these experimental/untested options!)", FALSE),
   				bsPopover(id = "experimental", title="A", content = "Do not run actual analyses with these experimental/untested options!", placement = "right", trigger = "hover")
-  		),		
+  		) # end of div id="leftCol"		
+  		), 
   		
   		
   		
+## ======================================================================
+## The output panels, on the right side
+## ======================================================================
   		
-  		# ---------------------------------------------------------------------
-  		# The output panels, on the right side
-  		
-  		column(width=8, 
+	column(width=7, 
 			
-			alert.create('<strong>New feature:</strong> You can now enter <i>p</i>-values directly (e.g. <code>p=0.021</code>). If you provide the sample size in addition (e.g. <code>p(48)=.03</code>), the <i>p</i>-value is also converted into an effect size.', style="success"),
+			#alert.create('<strong>New feature:</strong> You can now enter <i>p</i>-values directly (e.g. <code>p=0.021</code>). If you provide the sample size in addition (e.g. <code>p(48)=.03</code>), the <i>p</i>-value is also converted into an effect size.', style="success"),
 			
-			alert.create('<strong>Disclaimer:</strong> This web application provides several tests for publication bias/p-hacking/indicators for data-dependent analyses, whatever term you prefer. Some of them are new, unpublished, and controversial to some extent; purpose of this app is to provide a unified place for trying out and comparing these methods. Please use the tests with care, and RTM of the tests.', style="info"),
+			alert.create("<strong>Disclaimer:</strong> This web application provides several tests for publication bias/p-hacking/indicators for data-dependent analyses. Some of them are new, unpublished, and controversial to some extent; purpose of this app is to provide a unified place for trying out and comparing these methods. Please use the tests with care, and RTM of the tests. (You can dismiss this message by clicking 'X')", style="info"),
+  
+  			# show ROxygen-style title if provided in the syntax
+  			htmlOutput("roxygen_title"),
   
   			# show warning if experimental features are activated
-  			htmlOutput("experimental_warning"),
+  			htmlOutput("experimental_features_warning"),
   
   			# show potential parser errors on top of output
   			htmlOutput("parser_errors"),
@@ -122,7 +130,8 @@ shinyUI(tagList(
   					HTML('<small>For information about R-Index, see <a href="http://www.r-index.org/">http://www.r-index.org/</a>.</small>'),
   					htmlOutput("rindex_table")
   				),
-  				tabPanel("TIVA",					
+  				tabPanel("TIVA",			
+					alert.create('The TIVA test expects that all entered test statistics/p-values are in the expected direction (regardless of the sign). Please delete or comment out all rows with results in the "wrong" direction.'),		
   					htmlOutput("tiva_summary"),
   					conditionalPanel(
   						condition = "input.group_by_paper == 1",
@@ -146,13 +155,12 @@ shinyUI(tagList(
   					</small>'),
   					tableOutput("pcurve_table")
   				),
-  				# tabPanel("Meta-analysis (beta)",
-  # 					htmlOutput("meta")
-  # 				),
-  				tabPanel("Effect-sizes",
+  				tabPanel("Meta-analysis",
   				  br(),
-  					alert.create('The test statistics are converted to Cohen`s d (resp. Hedge`s g) wherever possible, based on the formulas provided by Borenstein, Hedges, Higgins, & Rothstein (2011). <strong>Warning:</strong> These effect size conversions are based on approximative formulas. Although they work good under many conditions, this cannot replace a proper meta-analysis!'),
-  					ggvisOutput("ES_plot"),
+  					alert.create('The test statistics are converted to Cohen\'s d wherever possible, based on the formulas provided by Borenstein, Hedges, Higgins, & Rothstein (2011). <strong>Warning:</strong> These effect size conversions are based on approximative formulas; furthermore the app always assumes equal cell sizes and other simplifications. Although these proxies work good under many conditions, this quick meta-analytic overview <i>cannot</i> replace a proper meta-analysis!'),
+  					#ggvisOutput("ES_plot"),
+		  			# show potential parser errors on top of output
+		  			htmlOutput("MA_warnings"),
   					htmlOutput("effectsizes")
   					
   				),
@@ -161,13 +169,13 @@ shinyUI(tagList(
   				# ),
   				tabPanel("p values correct?",
   					htmlOutput("report_table")
-  				),
-  				tabPanel("Export", 					
-  					tableOutput("export")
   				)#,
-  				# tabPanel("Demo data",
-  				# 	htmlOutput("demodata")
-  				# )
+  				# tabPanel("Export",
+#   					tableOutput("export")
+#   				)#,
+  				#tabPanel("Demo data",
+  				#	htmlOutput("demodata")
+  				#)
   			)
   		)
   	)	
@@ -176,7 +184,10 @@ shinyUI(tagList(
   tabPanel('Manual', loadHTML('snippets/extended_manual.html')),
   tabPanel('Terms of Use', loadHTML('snippets/responsibly.html')),
   tabPanel('About', loadHTML('snippets/about.html')),
+  tabPanel('Release Notes', loadHTML('snippets/version_history.html')),
   header = pancollapse(),
   theme = shinytheme("spacelab"), 
+  # load custom css to override some theme settings
+  tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "p-checker-theme.css")),
   windowTitle = "One-for-all p-value analyzer"
 )))

@@ -16,8 +16,8 @@ alert.create <- function(content, style="info") {
   )
 }
 
-pancollapse.create <- function(title, content){
-  HTML('<div class="panel panel-default"><div class="panel-heading panel-heading-collapse"><h4 class="panel-title">',
+pancollapse.create <- function(title, content, class="panel-default"){
+  HTML('<div class="panel ', class, '"><div class="panel-heading panel-heading-collapse"><h4 class="panel-title">',
        title,
        '<span class="pull-right"><i class="glyphicon glyphicon-chevron-up"></i></span></h4></div><div class="panel-body panel-collapse collapse">',
        content,

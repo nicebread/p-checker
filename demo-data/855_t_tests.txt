@@ -1,5 +1,7 @@
-# These are 855 t-tests from: Wetzels, R., Matzke, D., Lee, M. D., Rouder, J. N., Iverson, G. J., & Wagenmakers, E.-J. (2011). Statistical evidence in experimental psychology: An empirical comparison using 855 t tests. Perspectives on Psychological Science, 6, 291–298. doi:10.1177/1745691611406923
-# Retrieved from http://www.ejwagenmakers.com/2011/effectsize_data.zip
+#' @title 855 t-tests
+#' @subtitle by Ruud Wetzels et al.
+#' @details Wetzels, R., Matzke, D., Lee, M. D., Rouder, J. N., Iverson, G. J., & Wagenmakers, E.-J. (2011). Statistical evidence in experimental psychology: An empirical comparison using 855 t tests. Perspectives on Psychological Science, 6, 291–298. doi:10.1177/1745691611406923
+#' @url http://www.ejwagenmakers.com/2011/effectsize_data.zip
 
 t(17)=0.75
 t(12)=3.52

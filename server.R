@@ -1,16 +1,19 @@
 library(shiny)
 library(shinyjs)
 library(stringr)
-library(dplyr)
+library(plyr); library(dplyr)
 library(ggplot2)
 library(ggvis)
+library(meta)
+library(metafor)
+library(broom)
 
 # source inference functions
 source("pancollapse.R")
 source("fasterParser.R")
 source("p-curve.R")
-source("TIVA.R")
 source("helpers.R")
+source("TIVA.R")
 
 
 #input <- list(round_up=FALSE, digits=3, group_by_paper=TRUE, only_first_ES=TRUE, txt=x, pcurve_power=33, pcurve_crit=.05, experimental=FALSE); dat <- list()
@@ -22,7 +25,8 @@ shinyServer(function(input, output, session) {
 	dat <- reactiveValues(
 		tblDisplay=data.frame(),	# keeps the rounded values for display
 		tbl=data.frame(),			# keeps the precise values
-		warnings=""					# keeps a vector of parser errors
+		ERRORS = "",					# keeps a vector of parser errors
+		WARNINGS = ""					# keeps a vector of parser warnings
 	)
 	
 	exportTbl <- function() {
@@ -85,14 +89,21 @@ shinyServer(function(input, output, session) {
 		tbl <- parse_ES(input$txt, round_up = input$round_up)
 		
 		# parser errors present?
-		if (length(attr(tbl, "warnings")) > 0) {
-			dat$warnings <- attr(tbl, "warnings")
+		if (length(attr(tbl, "ERRORS")) > 0) {
+			dat$ERRORS <- attr(tbl, "ERRORS")
 		} else {
-			dat$warnings <- ""
+			dat$ERRORS <- ""
+		}
+		
+		# parser warnings present?
+		if (length(attr(tbl, "WARNINGS")) > 0) {
+			dat$WARNINGS <- attr(tbl, "WARNINGS")
+		} else {
+			dat$WARNINGS <- ""
 		}
 		
 		# No input? Return empty data frame
-		if (is.null(tbl) || nrow(tbl) == 0 || dat$warnings != "") {
+		if (is.null(tbl) || nrow(tbl) == 0) {
 			dat$tblDisplay <- data.frame()
 			dat$tbl <- data.frame()
 			return()
@@ -101,6 +112,7 @@ shinyServer(function(input, output, session) {
 		# ---------------------------------------------------------------------
 		# R-index computations
 		
+		#  -log(2) divides the p-value by two on the log scale
 		tbl$Z <- qnorm(tbl$p.value.log - log(2), lower.tail = FALSE, log.p=TRUE)
 		tbl$obs.pow <- pnorm(tbl$Z-qnorm(1-tbl$p.crit/2))
 		
@@ -159,28 +171,74 @@ shinyServer(function(input, output, session) {
 	# ---------------------------------------------------------------------
 	# Output for parser errors
 	output$parser_errors <- renderUI({
-	  if(dat$warnings != "") {
+	  if(dat$ERRORS != "") {
 	    alert.create(
 	      paste0(
 	        "<strong>Line ",
-	        dat$warnings[,1],
+	        dat$ERRORS[,1],
 	        "</strong> <code>",
-	        dat$warnings[,2],
+	        dat$ERRORS[,2],
 	        "</code>",
-	        stri_replace_all_fixed(dat$warnings[,3], "\n", "<br>"), 
+	        stri_replace_all_fixed(dat$ERRORS[,3], "\n", "<br>"), 
 	        collapse="<br>"
 	      ),
 	      style="danger"
 	    )
 	  }
 	})
+	
+	# ---------------------------------------------------------------------
+	# Output for parser warnings (only for the meta-analysis tab)
+	output$MA_warnings <- renderUI({
+	  if(dat$WARNINGS != "") {
+		pancollapse.create(
+		  "There are test statistics where the design is unclear (between or within subjects).<br>Click here for details.",
+		  alert.create(
+		      paste0(
+		        "<strong>Line ",
+		        dat$WARNINGS[,1],
+		        "</strong> <code>",
+		        dat$WARNINGS[,2],
+		        "</code>",
+		        stri_replace_all_fixed(dat$WARNINGS[,3], "\n", "<br>"), 
+		        collapse="<br>"
+		      ),
+	      style="danger"),
+		class = "panel-danger")
+	  }
+	})
 
-	# show warning if experimental features are activated
-	output$experimental_warning <- renderUI({
+	# ---------------------------------------------------------------------
+	#  show warning if experimental features are activated
+	
+	output$experimental_features_warning <- renderUI({
 		if (input$experimental == TRUE) {
 			HTML('<div class="alert alert-danger" role="alert">Warning: You activated experimental settings. Think twice before you run an actual p-checker analysis with these untested settings!</div>')
 		}
 	})
+	
+	# ---------------------------------------------------------------------
+	#  show roxygen-style title if provided in the syntax
+	output$roxygen_title <- renderUI({
+		if (is.null(input$txt)) return()
+		
+		# parse the input
+		title <- str_match_empty(input$txt, "#' @title (.*)\\n", position=2)
+		subtitle <- str_match_empty(input$txt, "#' @subtitle (.*)\\n", position=2)
+		url <- str_match_empty(input$txt, "#' @url (.*)\\n", position=2)
+		details <- str_match_empty(input$txt, "#' @details (.*)\\n", position=2)
+				
+		if (any(c(title, subtitle, url, details) != "")) {
+			HTML('<div style="border-bottom: thick solid #3F658F; margin-bottom: 20px; padding:5px; background-color:#EAF5FF">
+					<span style="font-size:150%; font-weight: bold; color:black;">', title, '</span>
+					<span style="font-size:120%;"> ', subtitle, '</span><br />
+					<span style="font-size:90%; padding-top:5px;"> ', details, '</span><br />
+					<span style="font-size:90%;"><a href="', url, '">', url, '</a></span>
+					</div>'
+			)
+		}
+	})
+	
 
 	# ---------------------------------------------------------------------
 	# Output for p value reporting tab
@@ -303,12 +361,13 @@ shinyServer(function(input, output, session) {
 		# One r-index analysis across all ES
 		if (input$group_by_paper == FALSE) {
 			success_rate <- sum(tbl$p.value < tbl$p.crit, na.rm=TRUE)/nrow(tbl)
-			obs_power0 <- tbl %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1) %>% select(median.obs.pow)
+			obs_power0 <- tbl %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1) %>% select(paper_id, study_id, median.obs.pow)
 			obs_power <- median(obs_power0$median.obs.pow, na.rm=TRUE)
 			inflation_rate <- success_rate - obs_power
 			r_index <- obs_power - inflation_rate
 		
-			tiva <- TIVA(tbl$p.value.log, log.p=TRUE)
+			# run TIVA with one-tailed p-values (see email from Aurelien)
+			tiva <- TIVA(tbl$p.value.log - log(2), log.p=TRUE)
 			
 			result <- paste0(
 				"<h3>R-Index analysis:</h3><h4>",
@@ -331,8 +390,8 @@ shinyServer(function(input, output, session) {
 			) %>% select(paper_id, k_effect_sizes, success_rate) 
 			
 			tbl <- tbl %>% group_by(paper_id, study_id)
-			obs_power0 <- tbl %>% filter(row_number() <= 1) %>% select(median.obs.pow)
-			obs_power <- obs_power0 %>% group_by(paper_id) %>% select(median.obs.pow) %>% summarise_each(funs(median))
+			obs_power0 <- tbl %>% filter(row_number() <= 1) %>% select(paper_id, study_id, median.obs.pow)
+			obs_power <- obs_power0 %>% group_by(paper_id) %>% select(paper_id, median.obs.pow) %>% summarise_each(funs(median))
 			
 			rindex <- inner_join(success_rate, obs_power, by="paper_id")
 			rindex <- rindex %>% mutate(
@@ -402,7 +461,8 @@ shinyServer(function(input, output, session) {
 
 		# One TIVA analysis across all ES
 		if (input$group_by_paper == FALSE) {
-			tiva <- TIVA(tbl$p.value.log, log.p=TRUE)
+			# - log(2): use one-tailed p-values for TIVA
+			tiva <- TIVA(tbl$p.value.log - log(2), log.p=TRUE)
 
 			result <- paste0(
 				"<h3>Test of insufficient variance (TIVA):</h3>",
@@ -505,10 +565,9 @@ shinyServer(function(input, output, session) {
 				lines(x=seq(0, input$pcurve_crit-.01, by=.01)+.005, y=theoretical_power_curve(input$pcurve_power/100, p.max=input$pcurve_crit)*100, col=COLORS$GREEN, lty="dashed", lwd=2)
 				
 				text(x=seq(0, input$pcurve_crit-.01, by=.01)+.006, y=perc + 8, col="black", label=paste0(round(perc), "%"), cex=)
-			}, res=100),
+			}, res=100, width=600),
 			send2pcurve.button.tag,
-			HTML(paste0("<br><small>Note: This transfers the test statistics without paper identifier. That means, p-curve.com will compute an omnibus test with all values.</small><br>",
-		"<small>Note: If you want identical results to p-curve.com, turn off the 'Gracious rounding up' option at the left panel.</small><br><br>
+			HTML(paste0("<br><small>Note: This transfers the test statistics without paper identifier. That means, p-curve.com will compute an omnibus test with all values.</small><br>
 		"))
 		))
 	})
@@ -625,19 +684,24 @@ shinyServer(function(input, output, session) {
 		js$browseURL(pcurve_link)
     })
 	
+	
+	
+	
+	
 	# ---------------------------------------------------------------------
 	# Effect size panel	
 	
 	output$effectsizes <- renderUI({
 		
-		TBL <- dat$tbl %>% filter(!is.na(g), !is.na(n.approx))
-		
-		if (nrow(TBL) > 1) {
+		TBL <- dat$tbl %>% filter(!is.na(d), !is.na(d.var))
+				
+		if (nrow(TBL) > 2) {
 			
 		  isolate({
 			TBL$g.abs <- abs(TBL$g)
 			TBL$label <- paste0("Row ", 1:nrow(TBL), ": ", TBL$paper_id, " ", TBL$study_id)
 			TBL$id <- 1:nrow(TBL)
+						
 			
 			mysessions <- function(x) {
 			  if(is.null(x)) return(NULL)
@@ -649,44 +713,127 @@ shinyServer(function(input, output, session) {
 			
 			#ES_plot <- ggplot(TBL, aes(x=n.approx, y=abs(g.abs))) + geom_point() + xlab("Approximate n (log scale)") + ylab("Absolute Hedge's g") + geom_smooth(method=lm) + scale_x_log10(breaks=round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)))
 			
-			ES_table <- dat$tblDisplay %>% filter(g != "NA", n.approx != "NA") %>% select(paper_id, study_id, type, df1, df2, statistic, p.value, n.approx, d, g)
-			
-			#tooltip <- function(x) {
-			  #if (is.null(x) | is.null(x$id)) return(NULL)
-			  #return(TBL[TBL$id == x$id, "label"])
-			#}
-			
-			# http://stackoverflow.com/questions/29785281/ggvis-with-tooltip-not-working-with-layer-smooths
 		
-			  
-			
-			#TBL %>% 
-			  #ggvis(x = ~n.approx, y = ~g.abs) %>%
-			  #layer_points(key := ~id) %>%
-			  #layer_model_predictions(model = "lm", se = FALSE, formula=g.abs~log(n.approx), stroke := COLORS$BLUE) %>%
-			  #add_axis("x", ticks = 5, values = round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)), grid=TRUE, title="Approximate n (log scale)", format="d") %>%
- 			  #add_axis("y", title="Absolute Hedge's g") %>% 			  
- 			  #scale_numeric("x", trans="log") %>%			  			  
-  			#add_tooltip(tooltip, "hover") %>%
-			  #bind_shiny("ES_plot")
+			ES_table <- dat$tblDisplay %>% filter(g != "NA", n.approx != "NA") %>% select(paper_id, study_id, type, df1, df2, statistic, p.value, n.approx, d, g, d.var, d.se, studydesign)			
 		  })
 		  
 		  
+		  k <- nrow(TBL)
+		  
 		  # Begg & Mazumdar Rank correlation test for publication bias; only if k>2
-		  if (nrow(TBL) > 2) {
+		  if (k > 2) {
 			  suppressWarnings({
-				  Begg <- cor.test(TBL$n.approx, TBL$g, use="p", method="kendall")
+				  #Begg <- cor.test(TBL$n.approx, TBL$g, use="p", method="kendall")
+				  Begg <- NULL
 			  })
 		  } else {
 		  	Begg <- NULL
 		  }
 		  
+		  # construct funnel plot
+		  meta1 <- metagen(TBL$d, TBL$d.se)
+		  meta2 <- rma(TBL$d, sei=TBL$d.se)
+
+		  # ---------------------------------------------------------------------
+		  #  Compute Egger's test / PET-PEESE
+		  # either as lm() or rma(); see http://www.metafor-project.org/doku.php/tips:rma_vs_lm_lme_lmer
+		  
+		  PET <- PET.lm <- lm(d~d.se, data=TBL, weight=1/TBL$d.var)
+		  PEESE <- PEESE.lm <- lm(d~d.var, data=TBL, weight=1/TBL$d.var)
+
+		  if (input$MR_model == "rma") {
+			  PET <- rma(yi = TBL$d, vi = TBL$d.var, mods=TBL$d.se, method="REML")
+			  PEESE <- rma(yi = TBL$d, vi = TBL$d.var, mods=TBL$d.var, method="REML")  
+		  }
+		  
+		  PETPEESE <- rbind(
+				data.frame(method="PET", tidyMR(PET)),
+				data.frame(method="PEESE", tidyMR(PEESE))
+		 )		
+		 
+		  # conditional PET/PEESE estimator
+		  #the one-tail version that Stanley advocates: 
+
+		  usePET <- ifelse(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["p.value"]] > .10, TRUE, FALSE)
+		  PETPEESE <- rbind(PETPEESE, 
+				data.frame(method="PETPEESE", if (usePET == TRUE) {tidyMR(PET)} else {tidyMR(PEESE)})
+		  )
+	  
+		  PET.est <- PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["estimate"]]
+		  PET.slope <- PETPEESE %>% filter(method == "PET", term == "b1") %>% .[["estimate"]]
+		  PEESE.est <- PETPEESE %>% filter(method == "PEESE", term == "b0") %>% .[["estimate"]]
+		  PET_PEESE.est <- PETPEESE %>% filter(method == "PETPEESE", term == "b0") %>% .[["estimate"]]
+		  PET_PEESE.text <- ifelse(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["p.value"]] > .10,
+		  		"As the PET intercept does not significantly differ from zero (p > .10), it is recommended to use the PET estimator.", "As the PET intercept does significantly differ from zero (p < .10), it is recommended to use the PEESE estimator.")
+
 			return(list(
+				renderPlot({
+					meta::funnel(meta1, ref=0, contour=c(0.9, 0.95), xlab="Effect size", cex=.5, pch=19)
+
+					u <- par("usr")	# get range of plot coordinates
+
+					# plot red dot at RE-MA
+					points(meta2$b, u[3], cex=1.3, col="red", pch=20)
+
+					# plot PET-line
+					range <- seq(0, u[3], length.out=100)
+
+					if (input$show_PET == TRUE) {
+						# predict values from model
+						PET.p <- PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["estimate"]] +
+									PETPEESE %>% filter(method == "PET", term == "b1") %>% .[["estimate"]]*range
+						lines(PET.p, range, col="red")
+
+						segments(coef(PET)[1], 0, coef(PET)[1], u[3], col="red", lty="dotted")
+						points(coef(PET)[1], u[3], cex=1.3, col="red", pch=20)
+					}
+
+					# plot PEESE-line
+					if (input$show_PEESE == TRUE) {
+						PEESE.p <- PETPEESE %>% filter(method == "PEESE", term == "b0") %>% .[["estimate"]] +
+									PETPEESE %>% filter(method == "PEESE", term == "b1") %>% .[["estimate"]]*range^2
+						lines(PEESE.p, range, col="red")
+
+						segments(coef(PEESE)[1], 0, coef(PEESE)[1], u[3], col="red", lty="dotted")
+						points(coef(PEESE)[1], u[3], cex=1.3, col="red", pch=20)
+					}
+
+				}, width=400),
+				HTML("<h4>A naive random effects meta-analysis (without bias correction)</h4>"),
+				renderPrint(meta2),
 				HTML(ifelse(is.null(Begg), "", 
-					paste0("<h4>Rank correlation of effect size vs. sample size (Begg & Mazumdar's (1994) test for publication bias): Kendall's <i>tau</i> = ", round(Begg$estimate, 2), " (", p(Begg$p.value), ")</h4>
-				<p>A significant negative rank correlation indicates publication bias. The test has a good Type I error control (i.e., it only gives false alarms of publication bias around the nominal 5% level) but relatively low power to detect actual publication bias.</p>"))),
-				
-					HTML('<p>In a set of studies with a fixed-<i>n</i> design and the same underlying effect, sample size should be unrelated to the estimated effect size (ES). A negative correlation between sample size and ES typically is seen as an indicator of publication bias and/or <i>p</i>-hacking. This bias is attempted to be corrected by meta-regression techniques such as <a href="http://onlinelibrary.wiley.com/doi/10.1002/jrsm.1095/abstract">PET-PEESE</a>.</p>
+					paste0("<h4>Begg & Mazumdar's (1994) test for publication bias</h4>Rank correlation of effect size vs. sample size (Kendall's <i>tau</i> = ", round(Begg$estimate, 2), " (", p(Begg$p.value), ")
+				<p>A significant negative rank correlation indicates publication bias.</p>"))),
+				HTML(paste0("<h4>Egger's test</h4>
+					The slope of Egger's test is b1 = ", round(PET.slope, 2), ", t(", summary(PET.lm)$df[2], ") = ", 
+					round(PETPEESE %>% filter(method == "PET", term == "b1") %>% .[["statistic"]], 3), "; ", 
+					p0(PETPEESE %>% filter(method == "PET", term == "b1") %>% .[["p.value"]]),
+					"<br>A significant slope with p < .10 is an indicator of small-study effects."
+					)),
+				HTML(paste0("<h4>PET: Bias corrected effect size estimate</h4>
+					The intercept of the PET meta-regression is b0 = ", round(PET.est, 2), ", t(", summary(PET.lm)$df[2], ") = ", 
+					round(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["statistic"]], 3), "; ", 
+					p0(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["p.value"]]),
+					"<br>A significant PET intercept with p < .10 indicates a bias corrected effect != 0. 
+					The estimated true effect size is ", round(PET.est, 2), ", 95% CI [", 
+					round(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["conf.low"]], 3), "; ",
+					round(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["conf.high"]], 3), "]."
+					)),
+				HTML(paste0("<h4>PEESE: Bias corrected effect size estimate</h4>
+					The intercept of the PEESE meta-regression is b0 = ", round(PEESE.est, 2), ", t(", summary(PEESE.lm)$df[2], ") = ", 
+					round(PETPEESE %>% filter(method == "PEESE", term == "b0") %>% .[["statistic"]], 3), "; ", 
+					p0(PETPEESE %>% filter(method == "PEESE", term == "b0") %>% .[["p.value"]]),
+					". The estimated true effect size is ", round(PEESE.est, 2), ", 95% CI [", 
+					round(PETPEESE %>% filter(method == "PEESE", term == "b0") %>% .[["conf.low"]], 3), "; ",
+					round(PETPEESE %>% filter(method == "PEESE", term == "b0") %>% .[["conf.high"]], 3), "]."
+					)),
+				HTML(paste0("<h4>PET-PEESE conditional estimator</h4>",
+					PET_PEESE.text,
+					" The estimated true effect size from the conditional estimator is ", round(PET_PEESE.est, 2), ", 95% CI [", 
+					round(PETPEESE %>% filter(method == "PETPEESE", term == "b0") %>% .[["conf.low"]], 3), "; ",
+					round(PETPEESE %>% filter(method == "PETPEESE", term == "b0") %>% .[["conf.high"]], 3), "]."
+					)),
+				HTML('<hr><h4>Some comments on small-study effects</h4><p>In a set of studies with a fixed-<i>n</i> design and the same underlying effect, sample size should be unrelated to the estimated effect size (ES). A negative correlation between sample size and ES typically is seen as an indicator of publication bias and/or <i>p</i>-hacking. This bias is attempted to be corrected by meta-regression techniques such as <a href="http://onlinelibrary.wiley.com/doi/10.1002/jrsm.1095/abstract">PET-PEESE</a>.</p>
 					<p>You should be aware, however, that some valid processes can also lead to a correlation between ES and N:
 <ul>
 <li>A) If (proper) sequential analyses are employed, trials with (randomly) lower sample effect sizes will take longer to stop. This process will also induce the correlation.</li>
@@ -704,7 +851,7 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 				))	
 		} else {
 			return(list(
-				HTML("<h4>Too few effect sizes for plotting!</h4><br>Enter >= 2 effect sizes.")
+				HTML("<h4>Too few effect sizes for plotting / meta-analysis!</h4><br>Enter > 2 effect sizes.")
 			))
 		}
 	})
@@ -755,7 +902,7 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	
 	
 	# ---------------------------------------------------------------------
-	# Effect size panel	
+	# Research style panel (not implemented yet)
 	
 	output$researchstyle <- renderUI({
 		if (nrow(dat$tbl) > 0) {			
@@ -795,16 +942,11 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	# Export: save analysis as link
 	# TODO: Also save the chosen analyis options
 	
-	output$export <- renderUI({
+	output$exportlink <- renderUI({
 		if (nrow(dat$tbl) > 0) {
 			
-			res2 <- paste(exportTbl(), collapse="<br>")
-			
 			return(list(
-				HTML(paste0("<h4>Copy and share <a href='http://shinyapps.org/apps/p-checker/?syntax=", URLencode(input$txt, reserved=TRUE),
-				"'>this link</a> to send the p-checker analysis to others.</h4>")),
-								
-				HTML(paste0("<small>",res2, "</small>"))
+				HTML(paste0("Copy and share <a href='http://shinyapps.org/apps/p-checker/?syntax=", URLencode(input$txt, reserved=TRUE), "'>this link</a> to send the p-checker analysis to others."))
 			))	
 		} else {
 			return(NULL)
@@ -822,25 +964,42 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 		return(list(
 			HTML('
 			<style>
-			 .actionButton .parent {
-			  width: 300px;
-			  height: 120px;
-			  background-color: #fff;
-			  border-radius: 5px;
-			  border-radius: 5px;
-			}
+			  		 .actionButton .parent {
+						  width: 300px;
+						  height: 120px;
+						  background-color: #fff;
+						  border-radius: 5px;
+						  border-radius: 5px;
+        
+						}
+      
+			      .actionButton {
+			        padding: 5% 0;
+			      }
 
-			.actionButton .parent:hover {
-			  box-shadow: 1px 1px 5px #999;
-			}
-			</style>
+						.actionButton .parent:hover {
+						  box-shadow: 1px 1px 5px #999;
+						}
+			
+						.buttonText {
+			        padding: 10% 0;
+			        text-align: left;
+			        padding-left: 110px;
+						}
+      
+			      img.buttonImg {
+			        vertical-align: middle;
+			        height:100px;
+			      }
+      
+						</style>
 
-			<div class="actionButton section">
-			    <button class="parent">
-			        <img class="left" src="//dummyimage.com/100" align="left">
-			        <span align="right"> Click me! </span>
-			    </button>
-			</div>
+						<div class="actionButton">
+						    <button class="parent">
+						        <img class="buttonImg" src="demo-pics/powerposing.jpg" align="left">
+						        <div class="buttonText"><b>Power posing</b> p-curve analysis by Joe Simmons and Uri Simonsohn</div>
+						    </button>
+						</div>
 			')
 		))	
 	})
