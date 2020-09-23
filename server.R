@@ -25,9 +25,10 @@ shinyServer(function(input, output, session) {
 	dat <- reactiveValues(
 		tblDisplay=data.frame(),	# keeps the rounded values for display
 		tbl=data.frame(),			# keeps the precise values
-		ERRORS = "",					# keeps a vector of parser errors
-		WARNINGS = ""					# keeps a vector of parser warnings
+		ERRORS = NULL,					# keeps a vector of parser errors
+		WARNINGS = NULL					# keeps a vector of parser warnings
 	)
+
 	
 	exportTbl <- function() {
 		if (nrow(dat$tbl) > 0) {
@@ -80,7 +81,7 @@ shinyServer(function(input, output, session) {
 	
 	# every time the text field is changed, this function is called and parses the input string
 	observe({
-		
+	  
 		# quit when syntax field is not created yet or empty
 		if (is.null(input$txt)) {
 			return()
@@ -88,19 +89,24 @@ shinyServer(function(input, output, session) {
 		
 		tbl <- parse_ES(input$txt, round_up = input$round_up)
 		
+		
 		# parser errors present?
 		if (length(attr(tbl, "ERRORS")) > 0) {
 			dat$ERRORS <- attr(tbl, "ERRORS")
+			
+			# remove erroneous lines		
+			tbl <- tbl[-as.numeric(dat$ERRORS[, 1]), ]
 		} else {
-			dat$ERRORS <- ""
+			dat$ERRORS <- NULL
 		}
 		
 		# parser warnings present?
 		if (length(attr(tbl, "WARNINGS")) > 0) {
 			dat$WARNINGS <- attr(tbl, "WARNINGS")
 		} else {
-			dat$WARNINGS <- ""
+			dat$WARNINGS <- NULL
 		}
+			
 		
 		# No input? Return empty data frame
 		if (is.null(tbl) || nrow(tbl) == 0) {
@@ -108,6 +114,7 @@ shinyServer(function(input, output, session) {
 			dat$tbl <- data.frame()
 			return()
 		}
+		
 		
 		# ---------------------------------------------------------------------
 		# R-index computations
@@ -127,7 +134,7 @@ shinyServer(function(input, output, session) {
 			# TODO: this is awkward. There must be a better way to solve this.
 			tbl2 <- tbl %>% 
 				group_by(paper_id, study_id) %>% 
-				filter(focal==TRUE, row_number() <= 1) %>% 
+				dplyr::filter(focal==TRUE, row_number() <= 1) %>% 
 				mutate(median.obs.pow=median(obs.pow)) %>% 
 				ungroup()
 			tbl <- inner_join(tbl, select(tbl2, paper_id, study_id, median.obs.pow), by=c("paper_id", "study_id"))
@@ -145,6 +152,17 @@ shinyServer(function(input, output, session) {
 		# p-curve computations
 		
 		dat$pcurve_power <- input$pcurve_power/100
+		
+		# in case of incomplete entries: remove those
+		if (sum(is.na(tbl$type)) > 0) {
+		  print("Illegal test types; removing them. tbl before removal:")
+		  print(tbl)
+		  tbl <- tbl[!is.na(tbl$type), ]
+		  print("tbl after removal:")
+		  print(tbl)
+		}
+		
+		
 		pps <- get_pp_values(type=tbl$type, statistic=tbl$statistic, df=tbl$df1, df2=tbl$df2, p.crit=input$pcurve_crit, power=dat$pcurve_power)$res
 		
 		tbl <- cbind(tbl, pps[, -1])
@@ -169,9 +187,9 @@ shinyServer(function(input, output, session) {
 
 
 	# ---------------------------------------------------------------------
-	# Output for parser errors
+	# Output for parser errors	
 	output$parser_errors <- renderUI({
-	  if(dat$ERRORS != "") {
+	  if (!is.null(dat$ERRORS)) {
 	    alert.create(
 	      paste0(
 	        "<strong>Line ",
@@ -190,7 +208,7 @@ shinyServer(function(input, output, session) {
 	# ---------------------------------------------------------------------
 	# Output for parser warnings (only for the meta-analysis tab)
 	output$MA_warnings <- renderUI({
-	  if(dat$WARNINGS != "") {
+	  if(!is.null(dat$WARNINGS)) {
 		pancollapse.create(
 		  "There are test statistics where the design is unclear (between or within subjects).<br>Click here for details.",
 		  alert.create(
@@ -321,11 +339,11 @@ shinyServer(function(input, output, session) {
 			# Omit near-significants if requested
 			if (input$omit_nearly_significant == TRUE) {
 				rindex_table <- rindex_table %>% 
-					filter(p.value < input$omit_nearly_significant_range[1] | p.value > input$omit_nearly_significant_range[2])
+					dplyr::filter(p.value < input$omit_nearly_significant_range[1] | p.value > input$omit_nearly_significant_range[2])
 			}		
 			
 			if (input$only_first_ES == TRUE) {
-				rindex_table <- rindex_table %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1)
+				rindex_table <- rindex_table %>% group_by(paper_id, study_id) %>% dplyr::filter(row_number() <= 1)
 			}
 			
 			return(list(
@@ -348,12 +366,12 @@ shinyServer(function(input, output, session) {
 		# Omit near-significants if requested
 		if (input$omit_nearly_significant == TRUE) {
 			tbl <- tbl %>% 
-				filter(p.value < input$omit_nearly_significant_range[1] | p.value > input$omit_nearly_significant_range[2])
+				dplyr::filter(p.value < input$omit_nearly_significant_range[1] | p.value > input$omit_nearly_significant_range[2])
 		}		
 		
 		# only select first ES of each study, if requested
 		if (input$only_first_ES == TRUE) {
-			tbl <- tbl %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1)
+			tbl <- tbl %>% group_by(paper_id, study_id) %>% dplyr::filter(row_number() <= 1)
 		}
 		
 		
@@ -361,7 +379,7 @@ shinyServer(function(input, output, session) {
 		# One r-index analysis across all ES
 		if (input$group_by_paper == FALSE) {
 			success_rate <- sum(tbl$p.value < tbl$p.crit, na.rm=TRUE)/nrow(tbl)
-			obs_power0 <- tbl %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1) %>% select(paper_id, study_id, median.obs.pow)
+			obs_power0 <- tbl %>% group_by(paper_id, study_id) %>% dplyr::filter(row_number() <= 1) %>% select(paper_id, study_id, median.obs.pow)
 			obs_power <- median(obs_power0$median.obs.pow, na.rm=TRUE)
 			inflation_rate <- success_rate - obs_power
 			r_index <- obs_power - inflation_rate
@@ -390,7 +408,7 @@ shinyServer(function(input, output, session) {
 			) %>% select(paper_id, k_effect_sizes, success_rate) 
 			
 			tbl <- tbl %>% group_by(paper_id, study_id)
-			obs_power0 <- tbl %>% filter(row_number() <= 1) %>% select(paper_id, study_id, median.obs.pow)
+			obs_power0 <- tbl %>% dplyr::filter(row_number() <= 1) %>% select(paper_id, study_id, median.obs.pow)
 			obs_power <- obs_power0 %>% group_by(paper_id) %>% select(paper_id, median.obs.pow) %>% summarise_each(funs(median))
 			
 			rindex <- inner_join(success_rate, obs_power, by="paper_id")
@@ -431,11 +449,11 @@ shinyServer(function(input, output, session) {
 	output$tiva_table <- renderUI({
 		if (nrow(dat$tblDisplay) > 0) {
 			tiva_table <- dat$tblDisplay %>% 
-				filter(focal==TRUE)  %>% 
+				dplyr::filter(focal==TRUE)  %>% 
 				select(paper_id, study_id, type, df1, df2, statistic, p.value, p.crit, Z)
 			
 			if (input$only_first_ES == TRUE) {
-				tiva_table <- tiva_table %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1)
+				tiva_table <- tiva_table %>% group_by(paper_id, study_id) %>% dplyr::filter(row_number() <= 1)
 			}
 			
 			return(list(
@@ -453,10 +471,10 @@ shinyServer(function(input, output, session) {
 		if (nrow(dat$tbl) == 0) {return(NULL)}
 
 		# only select focal hypothesis tests
-		tbl <- dat$tbl %>% filter(focal==TRUE)
+		tbl <- dat$tbl %>% dplyr::filter(focal==TRUE)
 		
 		if (input$only_first_ES == TRUE) {
-			tbl <- tbl %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1)
+			tbl <- tbl %>% group_by(paper_id, study_id) %>% dplyr::filter(row_number() <= 1)
 		}
 
 		# One TIVA analysis across all ES
@@ -485,7 +503,7 @@ shinyServer(function(input, output, session) {
 			}
 			
 			# remove rows where only 1 test stat was provided
-			tiva <- tiva %>% filter(!is.na(var.z))
+			tiva <- tiva %>% dplyr::filter(!is.na(var.z))
 			
 			dat$tiva <- tiva
 			
@@ -522,7 +540,7 @@ shinyServer(function(input, output, session) {
 			pcurve_table <- dat$tblDisplay[dat$tbl$focal==TRUE & dat$tbl$p.value <= .05, c("paper_id", "study_id", "type", "df1", "df2", "statistic", "p.value", "significant", "ppr", "ppl", "pp33")]
 			
 			if (input$only_first_ES == TRUE) {
-				pcurve_table <- pcurve_table %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1)
+				pcurve_table <- pcurve_table %>% group_by(paper_id, study_id) %>% dplyr::filter(row_number() <= 1)
 			}
 			
 			return(list(
@@ -552,7 +570,7 @@ shinyServer(function(input, output, session) {
 				tbl <- dat$tbl[dat$tbl$focal==TRUE & dat$tbl$p.value <= .05, ]
 		
 				if (input$only_first_ES == TRUE) {
-					tbl <- tbl %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1)
+					tbl <- tbl %>% group_by(paper_id, study_id) %>% dplyr::filter(row_number() <= 1)
 				}
 		
 				bins <- table(cut(tbl$p.value, breaks=seq(0, input$pcurve_crit, by=.01)))
@@ -578,10 +596,10 @@ shinyServer(function(input, output, session) {
 		if (nrow(dat$tbl) == 0) {return(NULL)}
 			
 		# select only focal and significant hypothesis tests
-		tbl <- dat$tbl %>% filter(focal==TRUE, significant==TRUE)
+		tbl <- dat$tbl %>% dplyr::filter(focal==TRUE, significant==TRUE)
 		
 		if (input$only_first_ES == TRUE) {
-			tbl <- tbl %>% group_by(paper_id, study_id) %>% filter(row_number() <= 1) %>% ungroup()
+			tbl <- tbl %>% group_by(paper_id, study_id) %>% dplyr::filter(row_number() <= 1) %>% ungroup()
 		}
 		
 		
@@ -634,7 +652,7 @@ shinyServer(function(input, output, session) {
 			}			
 			
 			# remove rows where no test stats are provided
-			pcurve <- pcurve %>% filter(!is.na(Z_evidence))
+			pcurve <- pcurve %>% dplyr::filter(!is.na(Z_evidence))
 			
 			dat$pcurve <- pcurve
 			pcurve[, -c(1, 8)] <- round(pcurve[, -c(1, 8)], input$digits)
@@ -675,9 +693,9 @@ shinyServer(function(input, output, session) {
 		
 		res1 <- paste(exportTbl(), collapse="\n")
 		
-		tbl <- dat$tbl %>% filter(focal==TRUE, significant==TRUE, type=="p")
-		if (nrow(tbl) > 0) {
-			info(paste0("p-curve.com does not accept directly entered p-values (only test statistics). Results are exported without: ", paste0("p=", tbl$statistic, collapse="; ")))
+		tbl2 <- dat$tbl %>% dplyr::filter(focal==TRUE, significant==TRUE, type=="p")
+		if (nrow(tbl2) > 0) {
+			info(paste0("p-curve.com does not accept directly entered p-values (only test statistics). Results are exported without: ", paste0("p=", tbl2$statistic, collapse="; ")))
 		}
 		
 		pcurve_link <- paste0("http://www.p-curve.com/app4/?tests=", URLencode(res1, reserved=TRUE))
@@ -693,7 +711,7 @@ shinyServer(function(input, output, session) {
 	
 	output$effectsizes <- renderUI({
 		
-		TBL <- dat$tbl %>% filter(!is.na(d), !is.na(d.var))
+		TBL <- dat$tbl %>% dplyr::filter(!is.na(d), !is.na(d.var))
 				
 		if (nrow(TBL) > 2) {
 			
@@ -714,7 +732,7 @@ shinyServer(function(input, output, session) {
 			#ES_plot <- ggplot(TBL, aes(x=n.approx, y=abs(g.abs))) + geom_point() + xlab("Approximate n (log scale)") + ylab("Absolute Hedge's g") + geom_smooth(method=lm) + scale_x_log10(breaks=round(seq(min(TBL$n.approx, na.rm=TRUE), max(TBL$n.approx, na.rm=TRUE), length.out=5)))
 			
 		
-			ES_table <- dat$tblDisplay %>% filter(g != "NA", n.approx != "NA") %>% select(paper_id, study_id, type, df1, df2, statistic, p.value, n.approx, d, g, d.var, d.se, studydesign)			
+			ES_table <- dat$tblDisplay %>% dplyr::filter(g != "NA", n.approx != "NA") %>% select(paper_id, study_id, type, df1, df2, statistic, p.value, n.approx, d, g, d.var, d.se, studydesign)			
 		  })
 		  
 		  
@@ -754,16 +772,16 @@ shinyServer(function(input, output, session) {
 		  # conditional PET/PEESE estimator
 		  #the one-tail version that Stanley advocates: 
 
-		  usePET <- ifelse(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["p.value"]] > .10, TRUE, FALSE)
+		  usePET <- ifelse(PETPEESE %>% dplyr::filter(method == "PET", term == "b0") %>% .[["p.value"]] > .10, TRUE, FALSE)
 		  PETPEESE <- rbind(PETPEESE, 
 				data.frame(method="PETPEESE", if (usePET == TRUE) {tidyMR(PET)} else {tidyMR(PEESE)})
 		  )
 	  
-		  PET.est <- PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["estimate"]]
-		  PET.slope <- PETPEESE %>% filter(method == "PET", term == "b1") %>% .[["estimate"]]
-		  PEESE.est <- PETPEESE %>% filter(method == "PEESE", term == "b0") %>% .[["estimate"]]
-		  PET_PEESE.est <- PETPEESE %>% filter(method == "PETPEESE", term == "b0") %>% .[["estimate"]]
-		  PET_PEESE.text <- ifelse(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["p.value"]] > .10,
+		  PET.est <- PETPEESE %>% dplyr::filter(method == "PET", term == "b0") %>% .[["estimate"]]
+		  PET.slope <- PETPEESE %>% dplyr::filter(method == "PET", term == "b1") %>% .[["estimate"]]
+		  PEESE.est <- PETPEESE %>% dplyr::filter(method == "PEESE", term == "b0") %>% .[["estimate"]]
+		  PET_PEESE.est <- PETPEESE %>% dplyr::filter(method == "PETPEESE", term == "b0") %>% .[["estimate"]]
+		  PET_PEESE.text <- ifelse(PETPEESE %>% dplyr::filter(method == "PET", term == "b0") %>% .[["p.value"]] > .10,
 		  		"As the PET intercept does not significantly differ from zero (p > .10), it is recommended to use the PET estimator.", "As the PET intercept does significantly differ from zero (p < .10), it is recommended to use the PEESE estimator.")
 
 			return(list(
@@ -780,8 +798,8 @@ shinyServer(function(input, output, session) {
 
 					if (input$show_PET == TRUE) {
 						# predict values from model
-						PET.p <- PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["estimate"]] +
-									PETPEESE %>% filter(method == "PET", term == "b1") %>% .[["estimate"]]*range
+						PET.p <- PETPEESE %>% dplyr::filter(method == "PET", term == "b0") %>% .[["estimate"]] +
+									PETPEESE %>% dplyr::filter(method == "PET", term == "b1") %>% .[["estimate"]]*range
 						lines(PET.p, range, col="red")
 
 						segments(coef(PET)[1], 0, coef(PET)[1], u[3], col="red", lty="dotted")
@@ -790,8 +808,8 @@ shinyServer(function(input, output, session) {
 
 					# plot PEESE-line
 					if (input$show_PEESE == TRUE) {
-						PEESE.p <- PETPEESE %>% filter(method == "PEESE", term == "b0") %>% .[["estimate"]] +
-									PETPEESE %>% filter(method == "PEESE", term == "b1") %>% .[["estimate"]]*range^2
+						PEESE.p <- PETPEESE %>% dplyr::filter(method == "PEESE", term == "b0") %>% .[["estimate"]] +
+									PETPEESE %>% dplyr::filter(method == "PEESE", term == "b1") %>% .[["estimate"]]*range^2
 						lines(PEESE.p, range, col="red")
 
 						segments(coef(PEESE)[1], 0, coef(PEESE)[1], u[3], col="red", lty="dotted")
@@ -806,32 +824,32 @@ shinyServer(function(input, output, session) {
 				<p>A significant negative rank correlation indicates publication bias.</p>"))),
 				HTML(paste0("<h4>Egger's test</h4>
 					The slope of Egger's test is b1 = ", round(PET.slope, 2), ", t(", summary(PET.lm)$df[2], ") = ", 
-					round(PETPEESE %>% filter(method == "PET", term == "b1") %>% .[["statistic"]], 3), "; ", 
-					p0(PETPEESE %>% filter(method == "PET", term == "b1") %>% .[["p.value"]]),
+					round(PETPEESE %>% dplyr::filter(method == "PET", term == "b1") %>% .[["statistic"]], 3), "; ", 
+					p0(PETPEESE %>% dplyr::filter(method == "PET", term == "b1") %>% .[["p.value"]]),
 					"<br>A significant slope with p < .10 is an indicator of small-study effects."
 					)),
 				HTML(paste0("<h4>PET: Bias corrected effect size estimate</h4>
 					The intercept of the PET meta-regression is b0 = ", round(PET.est, 2), ", t(", summary(PET.lm)$df[2], ") = ", 
-					round(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["statistic"]], 3), "; ", 
-					p0(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["p.value"]]),
+					round(PETPEESE %>% dplyr::filter(method == "PET", term == "b0") %>% .[["statistic"]], 3), "; ", 
+					p0(PETPEESE %>% dplyr::filter(method == "PET", term == "b0") %>% .[["p.value"]]),
 					"<br>A significant PET intercept with p < .10 indicates a bias corrected effect != 0. 
 					The estimated true effect size is ", round(PET.est, 2), ", 95% CI [", 
-					round(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["conf.low"]], 3), "; ",
-					round(PETPEESE %>% filter(method == "PET", term == "b0") %>% .[["conf.high"]], 3), "]."
+					round(PETPEESE %>% dplyr::filter(method == "PET", term == "b0") %>% .[["conf.low"]], 3), "; ",
+					round(PETPEESE %>% dplyr::filter(method == "PET", term == "b0") %>% .[["conf.high"]], 3), "]."
 					)),
 				HTML(paste0("<h4>PEESE: Bias corrected effect size estimate</h4>
 					The intercept of the PEESE meta-regression is b0 = ", round(PEESE.est, 2), ", t(", summary(PEESE.lm)$df[2], ") = ", 
-					round(PETPEESE %>% filter(method == "PEESE", term == "b0") %>% .[["statistic"]], 3), "; ", 
-					p0(PETPEESE %>% filter(method == "PEESE", term == "b0") %>% .[["p.value"]]),
+					round(PETPEESE %>% dplyr::filter(method == "PEESE", term == "b0") %>% .[["statistic"]], 3), "; ", 
+					p0(PETPEESE %>% dplyr::filter(method == "PEESE", term == "b0") %>% .[["p.value"]]),
 					". The estimated true effect size is ", round(PEESE.est, 2), ", 95% CI [", 
-					round(PETPEESE %>% filter(method == "PEESE", term == "b0") %>% .[["conf.low"]], 3), "; ",
-					round(PETPEESE %>% filter(method == "PEESE", term == "b0") %>% .[["conf.high"]], 3), "]."
+					round(PETPEESE %>% dplyr::filter(method == "PEESE", term == "b0") %>% .[["conf.low"]], 3), "; ",
+					round(PETPEESE %>% dplyr::filter(method == "PEESE", term == "b0") %>% .[["conf.high"]], 3), "]."
 					)),
 				HTML(paste0("<h4>PET-PEESE conditional estimator</h4>",
 					PET_PEESE.text,
 					" The estimated true effect size from the conditional estimator is ", round(PET_PEESE.est, 2), ", 95% CI [", 
-					round(PETPEESE %>% filter(method == "PETPEESE", term == "b0") %>% .[["conf.low"]], 3), "; ",
-					round(PETPEESE %>% filter(method == "PETPEESE", term == "b0") %>% .[["conf.high"]], 3), "]."
+					round(PETPEESE %>% dplyr::filter(method == "PETPEESE", term == "b0") %>% .[["conf.low"]], 3), "; ",
+					round(PETPEESE %>% dplyr::filter(method == "PETPEESE", term == "b0") %>% .[["conf.high"]], 3), "]."
 					)),
 				HTML('<hr><h4>Some comments on small-study effects</h4><p>In a set of studies with a fixed-<i>n</i> design and the same underlying effect, sample size should be unrelated to the estimated effect size (ES). A negative correlation between sample size and ES typically is seen as an indicator of publication bias and/or <i>p</i>-hacking. This bias is attempted to be corrected by meta-regression techniques such as <a href="http://onlinelibrary.wiley.com/doi/10.1002/jrsm.1095/abstract">PET-PEESE</a>.</p>
 					<p>You should be aware, however, that some valid processes can also lead to a correlation between ES and N:
@@ -860,7 +878,7 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	
 	tooltip <- function(x) {
 	  if (is.null(x) | is.null(x$id)) return(NULL)
-	  TBL <- dat$tbl %>% filter(!is.na(g))
+	  TBL <- dat$tbl %>% dplyr::filter(!is.na(g))
 	  TBL$g.abs <- abs(TBL$g)
 	  TBL$label <- paste0("Row ", 1:nrow(TBL), ": ", TBL$paper_id, " ", TBL$study_id)
 	  TBL$id <- 1:nrow(TBL)
@@ -870,9 +888,21 @@ On the other hand, proper sequential designs (A) are very rare yet (for an intro
 	
 	
 	reactive({
-	  TBL <- dat$tbl %>% filter(!is.na(g))
+	  
+	  if (nrow(dat$tbl)==0) {
+	    skip_flag <- TRUE
+	  } else {
+	      skip_flag <- FALSE
+	    }
+	  
+	  if (!skip_flag) {
+	    TBL <- dat$tbl %>% dplyr::filter(!is.na(g)) 
+	  } else {
+	    TBL <- NULL
+	  }
+	  
 	        
-	   if (nrow(TBL) > 1) {  
+	   if (!skip_flag && !is.null(TBL) && nrow(TBL) > 1) {  
 	     TBL$g.abs <- abs(TBL$g)
 	     TBL$label <- paste0("Row ", 1:nrow(TBL), ": ", TBL$paper_id, " ", TBL$study_id)
 	     TBL$id <- 1:nrow(TBL)

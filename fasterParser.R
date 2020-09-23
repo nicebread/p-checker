@@ -644,9 +644,11 @@ parse_ES <- function(txt, round_up = FALSE) {
 }
 
 
-parse_ES("t(72) = 4.80; BS
-t(72) = 4.80; WS
-t(72) = 5.80; WS")
+parse_ES("t")
+#
+# parse_ES("t(72) = 4.80; BS
+# t(72) = 4.80; WS
+# t(72) = 5.80; WS")
 #
 # (p <- parse_ES("t(47, 4)=2.1"))
 # (p <- parse_ES("t(47, 4)=2.1; BS"))

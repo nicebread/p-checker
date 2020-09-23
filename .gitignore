@@ -3,9 +3,11 @@
 .Rhistory
 .Rapp.history
 .Rproj
+.RData
 
 # Sandbox directory
 /.sandbox
 
 # Example code in package build process
 *-Ex.R
+.Rproj.user
