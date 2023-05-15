@@ -14,7 +14,7 @@ shinyUI(tagList(
 	
 	# https://github.com/daattali/shinyjs#using-shinyjs-with-navbarpage-layout
 	useShinyjs(),
-	extendShinyjs(text = jsCode),
+	extendShinyjs(text = jsCode, functions=c("browseURL")),
 	
 	navbarPage(title="", 
 	tabPanel("p-checker", 
@@ -127,7 +127,7 @@ shinyUI(tagList(
   						condition = "input.group_by_paper == 1",
   						downloadButton('downloadRIndex','Save R-Index results as CSV file', class="btn-sm")
   					),
-  					HTML('<small>For information about R-Index, see <a href="http://www.r-index.org/">http://www.r-index.org/</a>.</small>'),
+  					HTML('<small>For information about R-Index, see <a href="https://replicationindex.com/">https://replicationindex.com</a>.</small>'),
   					htmlOutput("rindex_table")
   				),
   				tabPanel("TIVA",			
