@@ -19,6 +19,27 @@ is.one <- function(v) {
   !is.na(v) & v==1
 }
 
+# txt = "
+# t(47) = 2.1
+# chi2(1) = 9.15
+# r(77) = .47
+# F(1, 88) = 9.21
+# p = .02
+# p(48) = .018
+# 
+# # add reported p-value; mark one-tailed; set alpha level
+# t(123) = 2.54; p < .01
+# Z = 1.9; one-tailed; p=.03
+# r(25) = 0.21; crit=.10
+# 
+# # add paper ID
+# A&B (2001) Study1: t(88)=2.1; one-tailed; p < .02
+# A&B (2001) Study1: r(147)=.246
+# A&B (2001) Study2: F(1,100)=9.1
+# CD&E (2014) S1a: F(1,210)=4.45; p < .01
+# CD&E (2014) S1b: t(123)=2.01; one-tailed; p = .02
+# "
+
 
 # parses a multiline string
 parse_ES <- function(txt, round_up = FALSE) {
@@ -340,7 +361,7 @@ parse_ES <- function(txt, round_up = FALSE) {
   if(length(indices_excessive_df2))
     errors[indices_excessive_df2] <- paste0(errors[indices_excessive_df2], "\nStatistic has two dfs but only one df allowed!")
 
-  indices_df_zero <- which(BIG[,DF1] == 0 || BIG[,DF2] == 0)
+  indices_df_zero <- which(BIG[,DF1] == 0 | BIG[,DF2] == 0)
   if(length(indices_df_zero))
     errors[indices_df_zero] <- paste0(errors[indices_df_zero], "\nDfs of statistic must be greater than zero!")
 
